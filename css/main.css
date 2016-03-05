@@ -1544,7 +1544,7 @@ pre .javascript .function {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: #e3ffbf;
+  background: #99ff54;
 }
 .sidebar-nav {
   margin: 0 0 20px;
@@ -2143,7 +2143,6 @@ hr {
   display: block;
   overflow: hidden;
   margin: 0 auto;
-  width: 75%;
 }
 @media (max-width: 767px) {
   .logo-line-before,
@@ -2277,6 +2276,18 @@ hr {
   .posts-expand .post-title {
     font-size: 26px;
   }
+}
+.posts-expand .post-title a:link {
+  color: #093;
+}
+.posts-expand .post-title a:visited {
+  color: #093;
+}
+.posts-expand .post-title a:hover {
+  color: #093;
+}
+.posts-expand .post-title a:active {
+  color: #093;
 }
 .posts-expand .post-title:hover:before {
   background: #222;
