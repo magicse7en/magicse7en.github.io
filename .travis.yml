@@ -18,9 +18,15 @@ install:
   - npm install hexo-renderer-marked --save
 
 script:
-  - chmod +x ./build.sh
-#  - ./build.sh > /dev/null
-  - ./build.sh
+  - hexo clean
+  - hexo generate
+
+after_success:
+  - cd ./public
+  - git init
+  - git add --all .
+  - git commit -m "Travis CI Auto Builder"
+  - git push --quiet --force https://$DEPLOY_REPO@github.com/magicse7en/magicse7en.github.io.git master
 
 branches:
   only:
