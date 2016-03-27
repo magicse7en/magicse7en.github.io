@@ -1,5 +1,5 @@
 hexo clean
-hexo g
+hexo g -d
 cd ./public #生成的静态页面会存储在public目录下
 git init
 git config --global push.default matching
