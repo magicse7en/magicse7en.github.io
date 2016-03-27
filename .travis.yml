@@ -8,11 +8,11 @@ before_install:
   - git config --global user.email "magicse7en@outlook.com"
 
 install:
-  - sudo npm install hexo-cli -g
-  - sudo npm install hexo --save
-  - sudo npm install
-  - sudo npm install hexo-generator-feed --save
-  - sudo npm install hexo-deployer-git --save
+  - npm install hexo-cli -g
+  - npm install hexo --save
+  - npm install
+  - npm install hexo-generator-feed --save
+  - npm install hexo-deployer-git --save
 
 script:
   - chmod +x ./build.sh
