@@ -88,6 +88,7 @@ cache:
     - node_modules
 ```
 2. 如果想在github的README.md显示构建成功与否的标示，可以修改README.md：
-
+```
 [build-info](https://travis-ci.org/userName/repoName.svg)
+```
 ![travis_ci_build_info_show.png](/img/travis_ci_build_info_show.png)
