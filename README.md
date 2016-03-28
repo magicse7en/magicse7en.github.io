@@ -1,4 +1,4 @@
-# magicse7en
+# Travis CI status
 
 [![build-info](https://travis-ci.org/magicse7en/magicse7en.github.io.svg)](https://travis-ci.org/magicse7en/magicse7en.github.io)
 
