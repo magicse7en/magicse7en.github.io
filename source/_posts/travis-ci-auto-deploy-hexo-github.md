@@ -72,7 +72,7 @@ npm install hexo-renderer-sass --save
 ## 坑3： travis CI自动构建部署之后，博客页面空白，什么也没有
 将主题换回默认的landscape则可以正常显示内容。则锁定是next theme配置问题，check发现themes/next 中的内容被ignore了，并没有push到raw branch.
 解决方法有二：
- - 使用.gitmodules，该方法会直接讲next theme repository import进来，这样的好处是可以使用最新的next theme，坏处是没法客制化自己的主题配置文件
+ - 使用.gitmodules，该方法会直接将next theme repository import进来，这样的好处是可以使用最新的next theme，坏处是没法客制化自己的主题配置文件
  ```
  [submodule "next"]
     path = themes/next
