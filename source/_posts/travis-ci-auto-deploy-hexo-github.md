@@ -92,3 +92,8 @@ cache:
 [build-info](https://travis-ci.org/userName/repoName.svg)
 ```
 ![travis_ci_build_info_show.png](/img/travis_ci_build_info_show.png)
+
+
+# Reference
+借用一张图说明Travis CI自动构建hexo博客的流程：、
+![travis-ci-work-flow.png](/img/travis-ci-work-flow.png)
