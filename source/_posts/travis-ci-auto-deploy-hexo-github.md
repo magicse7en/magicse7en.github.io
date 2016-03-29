@@ -21,7 +21,7 @@ hexo虽然可以方便地部署github静态博客，但是仅仅是把最终生�
 
 # Travis CI基本配置
 1. 打开https://travis-ci.org, 以github账号登录，然后选择需要构建的repository
-2. 设置Environment Variables: 取名为“DEPLOY_REPO”，将上一步中复制的token粘贴到此处，关掉“Display value in build log”选项。添加玩之后如下图：
+2. 设置Environment Variables: 取名为“DEPLOY_REPO”，将上一步中复制的token粘贴到此处，关掉“Display value in build log”选项。添加完之后如下图：
 ![travis_ci_setting.png](/img/travis_ci_setting.png)
 
 3. check token是否有效
@@ -95,5 +95,5 @@ cache:
 
 
 # Reference
-借用一张图说明Travis CI自动构建hexo博客的流程：、
+借用一张图说明Travis CI自动构建hexo博客的流程：
 ![travis-ci-work-flow.png](/img/travis-ci-work-flow.png)
