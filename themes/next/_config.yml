@@ -168,7 +168,7 @@ mathjax:
 baidu_analytics: 3a30ddfd3927f31d2c6aa6c36cc08a5c
 
 # Duoshuo ShortName
-#duoshuo_shortname: 
+duoshuo_shortname: magicse7en
 
 # Disqus
 #disqus_shortname:
@@ -186,7 +186,7 @@ google_site_verification: OLR3rxFMMN4VJjrdIrY7Fci2XJkGQnyKJdd7V_tgd3Q
 
 
 # Google Analytics
-#google_analytics:
+google_analytics: UA-75802022-1
 
 
 # Make duoshuo show UA
