@@ -322,3 +322,6 @@ calc源码:
 https://github.com/magicse7en/go-practice/commit/668cd75c498bfd1c8542eeefb8547c53dd2e7cde
 修改包名与目录名不一致的源码: 
 https://github.com/magicse7en/go-practice/commit/fce999305dd0c025493a4e3282379291c8d8f69e
+
+# Reference
+[Go项目的目录结构](http://blog.studygolang.com/2012/12/go%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84/)
