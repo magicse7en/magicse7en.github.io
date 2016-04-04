@@ -317,11 +317,34 @@ mv $WORK/calc/_obj/exe/a.out /home/joe/go/littlecalc/bin/calc
 但是`mymath`下的源文件中仍然定义的是`package littlemath`，
 `calc/calc.go`中引用包中的函数仍然是类似于`little.Add()`这样的。
 
+## 摆脱每新建一个工程就需要重新设置GOPATH的方法
+来自于[Go项目的目录结构](http://blog.studygolang.com/2012/12/go%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84/)。
+与`src`平行路径新建一支`build.sh`文件，内容如下。
+```bash
+#!/usr/bin/env bash
+
+pkg=$1
+
+CURDIR=`pwd`
+OLDGOPATH="$GOPATH"
+export GOPATH="$CURDIR"
+
+gofmt -w src
+
+go install -x $1
+
+export GOPATH="$OLDGOPATH"
+
+echo 'finished'
+```
+使用方法：`sh build.sh [packages]`，如`sh build.sh calc`.
+
 # Appendix
 calc源码: 
 https://github.com/magicse7en/go-practice/commit/668cd75c498bfd1c8542eeefb8547c53dd2e7cde
 修改包名与目录名不一致的源码: 
 https://github.com/magicse7en/go-practice/commit/fce999305dd0c025493a4e3282379291c8d8f69e
+[build.sh](https://github.com/magicse7en/go-practice/commit/0b0fdd9f75431d6afb64d86d1398dbd80e86a70b)
 
 # Reference
 [Go项目的目录结构](http://blog.studygolang.com/2012/12/go%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84/)
