@@ -314,7 +314,8 @@ mv $WORK/calc/_obj/exe/a.out /home/joe/go/littlecalc/bin/calc
 ```
 以上可以发现，编译产生的静态包(package)文件是以目录名来命名的。import时应该是目录名，而在引用包时则需要包名。
 虽然将`littlemath`改成了`mymath`，`calc/calc.go`中的`import "littlemath"`改成了`import "mymath"`，
-但是`mymath`下的源文件中仍然定义的是`package littlemath`，`calc/calc.go`中引用包中的函数仍然是类似于`little.Add()`这样的。
+但是`mymath`下的源文件中仍然定义的是`package littlemath`，
+`calc/calc.go`中引用包中的函数仍然是类似于`little.Add()`这样的。
 
 # Appendix
 calc源码: 
