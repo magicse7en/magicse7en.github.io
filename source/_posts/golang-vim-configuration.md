@@ -34,7 +34,7 @@ set t_Co=256
 export GOBIN=$GOROOT/bin
 ```
 
-> Please be sure all necessary binaries are installed (such as gocode, godef, goimports, etc.). You can easily install them with the included :GoInstallBinaries command. If invoked, all necessary binaries will be automatically downloaded and installed to your \$GOBIN environment (if not set it will use $GOPATH/bin). Note that this command requires git for fetching the individual Go packages. Additionally, use :GoUpdateBinaries to update the installed binaries.
+> Please be sure all necessary binaries are installed (such as gocode, godef, goimports, etc.). You can easily install them with the included :GoInstallBinaries command. If invoked, all necessary binaries will be automatically downloaded and installed to your $GOBIN environment (if not set it will use $GOPATH/bin). Note that this command requires git for fetching the individual Go packages. Additionally, use :GoUpdateBinaries to update the installed binaries.
 -- https://github.com/fatih/vim-go
 
 

@@ -1,6 +1,6 @@
 
 ---
-title: Golang环境配置
+title: Golang环境配置及工程管理
 date: 2016-03-29 23:55:42
 updated: 2016-04-02
 tags: Golang
@@ -240,7 +240,7 @@ go install calc: open /usr/local/go/bin/calc: permission denied
 export GOROOT=/usr/local/go
 export GOBIN=
 export GOPATH=$HOME/go/littlecalc
-export PATH=$PATH:$GOPATH:$GOROOT
+export PATH=$PATH:$GOPATH:$GOROOT/bin
 ```
 然后再执行`go install calc`，可以看到目录树如下。在`bin`下多了一个叫`calc`的最终可执行文件；在pkg下多了一个package文件`littlemath.a`.
 ```bash
