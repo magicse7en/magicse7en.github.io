@@ -37,4 +37,6 @@ export GOBIN=$GOROOT/bin
 > Please be sure all necessary binaries are installed (such as gocode, godef, goimports, etc.). You can easily install them with the included :GoInstallBinaries command. If invoked, all necessary binaries will be automatically downloaded and installed to your $GOBIN environment (if not set it will use $GOPATH/bin). Note that this command requires git for fetching the individual Go packages. Additionally, use :GoUpdateBinaries to update the installed binaries.
 -- https://github.com/fatih/vim-go
 
+vim-go依赖于很多其他binary，需自备梯子。
+国内有个Go Package Manager: https://gopm.io/ 可以下载到被墙的binaries.
 
