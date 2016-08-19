@@ -17,6 +17,7 @@ BUG: Bad rss-counter state mm:ce964380 idx:1 val:1
 
 <!--more-->
 
+# Debug
 对发生Segmentation fault的user space process注册signal handler, 发现死机时并没有进入到signal handler中。在kernel `__do_uesr_fault`中判断SIGSEGV时dump register, rebuild出backtrace, 发现每次都不一样，结合汇编code来看，没有发现可疑的地方。
 bad pmd的提示比较怀疑该process的地址空间的pgd已经出现问题，然后再发生的SIGSEGV.
 因为是烧机问题，所以利用hw breakpoint来监控process的task_struct的mm->pgd.
@@ -40,3 +41,6 @@ hw_break_module_init()
 hw_break_module_exit()
 ```
 然后再重新烧机复制，果然发现pgd有被盖写，通过打印的backtrace即可锁定凶手。
+
+# 延伸
+user space如何使用hw breakpoint ?
