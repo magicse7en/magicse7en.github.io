@@ -18,6 +18,14 @@ CPU: ARMv7
 imprecise external abort比较少见，一般来讲abort的时候已经是滞后性的了，也就是说abort仔细check打印的backtrace, 都看不出任何的问题。
 先看下kernel中打印`imprecise external abort`的地方。
 
+`arch/arm/mm/fsr-2level.c`
+```c
+static struct fsr_info fsr_info[] = {
+ ...
+ { do_bad,               SIGBUS,  BUS_OBJERR,    "imprecise external abort"         }, /* xscale */
+ ...
+};
+```
 `arch/arm/mm/fault.c`
 ```c
 /*
@@ -83,16 +91,19 @@ FS[3:0] :
 0b11100 Synchronous parity error on translation table walk, first level.
 0b11110 Synchronous parity error on translation table walk, second level. 
 
-还是不知道出错的地方在哪里。突然想到这款IC有bus monitor的功能，check bus记录的发生abort的register, 还真有个写DRAM address发生abort.
+还是不知道出错的地方在哪里。这种imprecise external abort可能是BUS error, 想到这款IC有bus monitor的功能，check bus记录的发生abort的register, 还真记录下一个写DRAM address发的生abort.
 进一步check发现写这个DRAM address其实是在很早之前的uboot阶段。写的DRAM address超出了DRAM size而导致的问题。将其fix掉，则没有了imprecise external abort, 可以正常开机了。
 
 那么为什么在uboot阶段没有及时abort呢？ 因为uboot阶段CPSR.A是mask的，如果将uboot阶段CPSR.A改成unmask, 然后再复现此问题，那么uboot阶段就会比较及时地收到abort, 进入异常向量的abort处理流程。
 
 # What is imprecise abort?
 [1] https://community.arm.com/thread/5622
+
 [2] http://stackoverflow.com/questions/27507013/synchronous-external-abort-on-arm
 > An **abort** means the CPU tried to make a memory access, which for whatever reason, couldn't be completed so raises an exception.
 An **external abort** is one from, well, externally to the processor, i.e. something on the bus. In other words, the access didn't fault in the MMU, went out onto the bus, and either some device or the interconnect itself came back and said "hey, I can't deal with this".
 A **synchronous external** abort means you're rather fortunate, in that it's not going to be utterly hideous to debug - in the case of a prefetch abort, it means the IFAR is going to contain a valid VA for the faulting instruction, so you know exactly what caused it. The unpleasant alternative is an **asynchronous external abort**, which is little more than an interrupt to say "hey, something you did a while ago didn't actually work. No I don't know what is was either."
 
 [3] http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/14809.html
+
+[4] http://lists.infradead.org/pipermail/linux-arm-kernel/2011-November/072495.html
