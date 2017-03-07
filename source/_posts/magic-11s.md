@@ -45,7 +45,7 @@ So we disable uart log or change uart baud rate to 921600, the ANR disappeared.
 
 
 At last, we review n_tty_write() function.
-```
+```c
 2019 static ssize_t n_tty_write(struct tty_struct *tty, struct file *file,
 2020                            const unsigned char *buf, size_t nr)
 2021 {
