@@ -1,0 +1,826 @@
+<!doctype html>
+
+
+
+  
+
+
+<html class="theme-next mist use-motion">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+  <meta name="google-site-verification" content="OLR3rxFMMN4VJjrdIrY7Fci2XJkGQnyKJdd7V_tgd3Q" />
+
+
+
+
+
+
+
+
+
+
+  <link href="/vendors/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css"/>
+
+
+
+
+  <link href="//fonts.googleapis.com/css?family=Lato:300,400,700,400italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+
+
+
+<link href="/vendors/font-awesome/css/font-awesome.min.css?v=4.4.0" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=0.5.0" rel="stylesheet" type="text/css" />
+
+
+  <meta name="keywords" content="ANR,ftrace," />
+
+
+
+
+
+  <link rel="alternate" href="/atom.xml" title="CodingLife" type="application/atom+xml" />
+
+
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?v=0.5.0" />
+
+
+
+
+
+
+<meta name="description" content="The 3rd apk is hung up 11s while playback.
+The direct appearance is ANR: Input event dispatching timed out sending. This ANR is caused by mediaplayer process.
+Firstly, we use top to watch CPU loading,">
+<meta property="og:type" content="article">
+<meta property="og:title" content="magic 11s">
+<meta property="og:url" content="http://magicse7en.github.io/2017/03/07/magic-11s/index.html">
+<meta property="og:site_name" content="CodingLife">
+<meta property="og:description" content="The 3rd apk is hung up 11s while playback.
+The direct appearance is ANR: Input event dispatching timed out sending. This ANR is caused by mediaplayer process.
+Firstly, we use top to watch CPU loading,">
+<meta property="og:updated_time" content="2017-03-07T15:42:56.268Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="magic 11s">
+<meta name="twitter:description" content="The 3rd apk is hung up 11s while playback.
+The direct appearance is ANR: Input event dispatching timed out sending. This ANR is caused by mediaplayer process.
+Firstly, we use top to watch CPU loading,">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"post"},
+    fancybox: true,
+    motion: true,
+    duoshuo: {
+      userId: 0,
+      author: 'Author'
+    }
+  };
+</script>
+
+  <title> magic 11s | CodingLife </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="en">
+
+  
+
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+            (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+          m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+  ga('create', 'UA-75802022-1', 'auto');
+  ga('send', 'pageview');
+</script>
+
+
+  <script type="text/javascript">
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "//hm.baidu.com/hm.js?3a30ddfd3927f31d2c6aa6c36cc08a5c";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+
+
+  
+  
+    
+  
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+  
+
+  <div class="custom-logo-site-title">
+    <a href="/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">CodingLife</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle"></p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu ">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-home fa-fw"></i> <br />
+            
+            Home
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories" rel="section">
+            
+              <i class="menu-item-icon fa fa-th fa-fw"></i> <br />
+            
+            Categories
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives" rel="section">
+            
+              <i class="menu-item-icon fa fa-archive fa-fw"></i> <br />
+            
+            Archives
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags" rel="section">
+            
+              <i class="menu-item-icon fa fa-tags fa-fw"></i> <br />
+            
+            Tags
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about" rel="section">
+            
+              <i class="menu-item-icon fa fa-user fa-fw"></i> <br />
+            
+            About
+          </a>
+        </li>
+      
+
+      
+
+
+      
+      
+    </ul>
+  
+
+  
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+            
+            
+              
+                magic 11s
+              
+            
+          </h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">Posted on</span>
+            <time itemprop="dateCreated" datetime="2017-03-07T00:00:00+00:00" content="2017-03-07">
+              2017-03-07
+            </time>
+          </span>
+
+          
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+              
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/categories/Linux/" itemprop="url" rel="index">
+                    <span itemprop="name">Linux</span>
+                  </a>
+                </span>
+
+                
+                
+
+              
+            </span>
+          
+
+          
+            
+              <span class="post-comments-count">
+                &nbsp; | &nbsp;
+                <a href="/2017/03/07/magic-11s/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count ds-thread-count" data-thread-key="2017/03/07/magic-11s/" itemprop="commentsCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+
+          
+          
+
+        </div>
+      </header>
+    
+
+
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <p>The 3rd apk is hung up 11s while playback.</p>
+<p>The direct appearance is ANR: Input event dispatching timed out sending. This ANR is caused by mediaplayer process.</p>
+<p>Firstly, we use <code>top</code> to watch CPU loading, but find that CPU loading is not high when playback.</p>
+<p>Secondly, check <code>/proc/interrupts</code>, we cannot find any interrupt abnormal.</p>
+<p>This is a customer on-site issue, we only digg the log. We add some debug logs, and find that sometimes the interval printing two logs is 11s,it’s weird.</p>
+<p>We doubt that system scheduling maybe occur anomaly. So capture ftrace data.</p>
+<ol>
+<li><p>start ftrace</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">mount -t debugfs nodev /sys/kernel/debug</div><div class="line">echo nop &gt; /sys/kernel/debug/tracing/current_tracer</div><div class="line">echo 0 &gt; /sys/kernel/debug/tracing/tracing_on</div><div class="line">echo &gt; /sys/kernel/debug/tracing/trace</div><div class="line">echo &quot;sched_switch sched_wakeup sched_wakeup_new sched_migrate_task irq timer&quot; &gt; /sys/kernel/debug/tracing/set_event</div><div class="line">echo &quot;workqueue_execute_start workqueue_execute_end block_rq_issue block_rq_insert block_rq_complete&quot; &gt;&gt; /sys/kernel/debug/tracing/set_event</div><div class="line">echo 20480 &gt; /sys/kernel/debug/tracing/buffer_size_kb</div><div class="line">echo 1 &gt; /sys/kernel/debug/tracing/tracing_on</div></pre></td></tr></table></figure>
+</li>
+<li><p>stop ftrace (stop ftrace immediately once be reproduced)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">echo 0 &gt; /sys/kernel/debug/tracing/tracing_on</div><div class="line">cat /sys/kernel/debug/tracing/trace &gt; /data/ftrace.log</div><div class="line">echo 0 &gt; /sys/kernel/debug/tracing/trace</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>Notes: How to make ANR time printed by <code>logcat</code> to match Unix Timestamp. There is a very good tool: <a href="http://rimzy.net/tools/php_timestamp_converter.php" target="_blank" rel="external">http://rimzy.net/tools/php_timestamp_converter.php</a></p>
+<p>Go through digging ftrace data, we found a doubtful point: process X hasn’t scheduled about 11s.</p>
+<ul>
+<li>use <code>renice</code> and <code>tasklet</code> to improve process priority and bind process X to specific CPU, it’s no improvement.</li>
+<li>We found that process X <code>sched_wakeup</code> from idle process, it means process X is waked up by interrupt. The latest interrupt is uart interrupt.<br>So we disable uart log or change uart baud rate to 921600, the ANR disappeared.</li>
+</ul>
+<p>At last, we review n_tty_write() function.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div></pre></td><td class="code"><pre><div class="line"><span class="number">2019</span> <span class="function"><span class="keyword">static</span> ssize_t <span class="title">n_tty_write</span><span class="params">(<span class="keyword">struct</span> tty_struct *tty, <span class="keyword">struct</span> file *file,</span></span></div><div class="line"><span class="number">2020</span>                            <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">char</span> *buf, <span class="keyword">size_t</span> nr)</div><div class="line">2021 &#123;</div><div class="line"><span class="number">2022</span>         <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">char</span> *b = buf;</div><div class="line"><span class="number">2023</span>         DECLARE_WAITQUEUE(wait, current);</div><div class="line"><span class="number">2024</span>         <span class="keyword">int</span> c;</div><div class="line"><span class="number">2025</span>         <span class="keyword">ssize_t</span> retval = <span class="number">0</span>;</div><div class="line"><span class="number">2026</span></div><div class="line"><span class="number">2027</span>         <span class="comment">/* Job control check -- must be done at start (POSIX.1 7.1.1.4). */</span></div><div class="line"><span class="number">2028</span>         <span class="keyword">if</span> (L_TOSTOP(tty) &amp;&amp; file-&gt;f_op-&gt;write != redirected_tty_write) &#123;</div><div class="line"><span class="number">2029</span>                 retval = tty_check_change(tty);</div><div class="line"><span class="number">2030</span>                 <span class="keyword">if</span> (retval)</div><div class="line"><span class="number">2031</span>                         <span class="keyword">return</span> retval;</div><div class="line"><span class="number">2032</span>         &#125;</div><div class="line"><span class="number">2033</span></div><div class="line"><span class="number">2034</span>         <span class="comment">/* Write out any echoed characters that are still pending */</span></div><div class="line"><span class="number">2035</span>         process_echoes(tty);</div><div class="line"><span class="number">2036</span></div><div class="line"><span class="number">2037</span>         add_wait_queue(&amp;tty-&gt;write_wait, &amp;wait);</div><div class="line"><span class="number">2038</span>         <span class="keyword">while</span> (<span class="number">1</span>) &#123;</div><div class="line"><span class="number">2039</span>                 set_current_state(TASK_INTERRUPTIBLE);</div><div class="line"><span class="number">2040</span>                 <span class="keyword">if</span> (signal_pending(current)) &#123;</div><div class="line"><span class="number">2041</span>                         retval = -ERESTARTSYS;</div><div class="line"><span class="number">2042</span>                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2043</span>                 &#125;</div><div class="line"><span class="number">2044</span>                 <span class="keyword">if</span> (tty_hung_up_p(file) || (tty-&gt;link &amp;&amp; !tty-&gt;link-&gt;count)) &#123;</div><div class="line"><span class="number">2045</span>                         retval = -EIO;</div><div class="line"><span class="number">2046</span>                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2047</span>                 &#125;</div><div class="line"><span class="number">2048</span>                 <span class="keyword">if</span> (O_OPOST(tty)) &#123;</div><div class="line"><span class="number">2049</span>                         <span class="keyword">while</span> (nr &gt; <span class="number">0</span>) &#123;</div><div class="line"><span class="number">2050</span>                                 <span class="keyword">ssize_t</span> num = process_output_block(tty, b, nr);</div><div class="line"><span class="number">2051</span>                                 <span class="keyword">if</span> (num &lt; <span class="number">0</span>) &#123;</div><div class="line"><span class="number">2052</span>                                         <span class="keyword">if</span> (num == -EAGAIN)</div><div class="line"><span class="number">2053</span>                                                 <span class="keyword">break</span>;</div><div class="line"><span class="number">2054</span>                                         retval = num;</div><div class="line"><span class="number">2055</span>                                         <span class="keyword">goto</span> break_out;</div><div class="line"><span class="number">2056</span>                                 &#125;</div><div class="line"><span class="number">2057</span>                                 b += num;</div><div class="line"><span class="number">2058</span>                                 nr -= num;</div><div class="line"><span class="number">2059</span>                                 <span class="keyword">if</span> (nr == <span class="number">0</span>)</div><div class="line"><span class="number">2060</span>                                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2061</span>                                 c = *b;</div><div class="line"><span class="number">2062</span>                                 <span class="keyword">if</span> (process_output(c, tty) &lt; <span class="number">0</span>)</div><div class="line"><span class="number">2063</span>                                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2064</span>                                 b++; nr--;</div><div class="line"><span class="number">2065</span>                         &#125;</div><div class="line"><span class="number">2066</span>                         <span class="keyword">if</span> (tty-&gt;ops-&gt;flush_chars)</div><div class="line"><span class="number">2067</span>                                 tty-&gt;ops-&gt;flush_chars(tty);</div><div class="line"><span class="number">2068</span>                 &#125; <span class="keyword">else</span> &#123;</div><div class="line"><span class="number">2069</span>                         <span class="keyword">while</span> (nr &gt; <span class="number">0</span>) &#123;</div><div class="line"><span class="number">2070</span>                                 c = tty-&gt;ops-&gt;write(tty, b, nr);</div><div class="line"><span class="number">2071</span>                                 <span class="keyword">if</span> (c &lt; <span class="number">0</span>) &#123;</div><div class="line"><span class="number">2072</span>                                         retval = c;</div><div class="line"><span class="number">2073</span>                                         <span class="keyword">goto</span> break_out;</div><div class="line"><span class="number">2074</span>                                 &#125;</div><div class="line"><span class="number">2075</span>                                 <span class="keyword">if</span> (!c)</div><div class="line"><span class="number">2076</span>                                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2077</span>                                 b += c;</div><div class="line"><span class="number">2078</span>                                 nr -= c;</div><div class="line"><span class="number">2079</span>                         &#125;</div><div class="line"><span class="number">2080</span>                 &#125;</div><div class="line"><span class="number">2081</span>                 <span class="keyword">if</span> (!nr)</div><div class="line"><span class="number">2082</span>                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2083</span>                 <span class="keyword">if</span> (file-&gt;f_flags &amp; O_NONBLOCK) &#123;</div><div class="line"><span class="number">2084</span>                         retval = -EAGAIN;</div><div class="line"><span class="number">2085</span>                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2086</span>                 &#125;</div><div class="line"><span class="number">2087</span>                 schedule();</div><div class="line"><span class="number">2088</span>         &#125;</div><div class="line"><span class="number">2089</span> break_out:</div><div class="line"><span class="number">2090</span>         __set_current_state(TASK_RUNNING);</div><div class="line"><span class="number">2091</span>         remove_wait_queue(&amp;tty-&gt;write_wait, &amp;wait);</div><div class="line"><span class="number">2092</span>         <span class="keyword">if</span> (b - buf != nr &amp;&amp; tty-&gt;fasync)</div><div class="line"><span class="number">2093</span>                 set_bit(TTY_DO_WRITE_WAKEUP, &amp;tty-&gt;flags);</div><div class="line"><span class="number">2094</span>         <span class="keyword">return</span> (b - buf) ? b - buf : retval;</div><div class="line"><span class="number">2095</span> &#125;</div></pre></td></tr></table></figure></p>
+<p>Write data in while loop. When user space process uses blocking write method, if write fail, it will yield cpu and wake up untill the condition is met. In this ANR case, the root cause is that user space process instant log data is huge and block in n_tty_write().</p>
+
+      
+    </div>
+
+    <div>
+      
+        
+      
+    </div>
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/ANR/" rel="tag">#ANR</a>
+          
+            <a href="/tags/ftrace/" rel="tag">#ftrace</a>
+          
+        </div>
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/2016/08/19/bad-pmd-issue-analysis/" rel="next" title="bad pmd issue analysis">
+                <i class="fa fa-chevron-left"></i> bad pmd issue analysis
+              </a>
+            
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+      
+        <div class="ds-share flat" data-thread-key="2017/03/07/magic-11s/"
+     data-title="magic 11s"
+     data-content=""
+     data-url="http://magicse7en.github.io/2017/03/07/magic-11s/">
+  <div class="ds-share-inline">
+    <ul  class="ds-share-icons-16">
+
+      <li data-toggle="ds-share-icons-more"><a class="ds-more" href="javascript:void(0);">分享到：</a></li>
+      <li><a class="ds-weibo" href="javascript:void(0);" data-service="weibo">微博</a></li>
+      <li><a class="ds-wechat" href="javascript:void(0);" data-service="wechat">微信</a></li>
+     <!--  <li><a class="ds-qzone" href="javascript:void(0);" data-service="qzone">QQ空间</a></li> -->
+      <li><a class="ds-facebook" href="javascript:void(0);" data-service="facebook">Facebook</a></li>
+      <li><a class="ds-twitter" href="javascript:void(0);" data-service="twitter">Twitter</a></li>
+
+    </ul>
+    <div class="ds-share-icons-more">
+    </div>
+  </div>
+</div>
+
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+  <div class="comments" id="comments">
+    
+      <div class="ds-thread" data-thread-key="2017/03/07/magic-11s/"
+           data-title="magic 11s" data-url="http://magicse7en.github.io/2017/03/07/magic-11s/">
+      </div>
+    
+  </div>
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+      
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/images/avatar.jpeg"
+               alt="magicse7en" />
+          <p class="site-author-name" itemprop="name">magicse7en</p>
+          <p class="site-description motion-element" itemprop="description">No Pains, No Gains!</p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/archives">
+              <span class="site-state-item-count">11</span>
+              <span class="site-state-item-name">posts</span>
+            </a>
+          </div>
+          
+          
+            <div class="site-state-item site-state-categories">
+              <a href="/categories">
+                <span class="site-state-item-count">5</span>
+                <span class="site-state-item-name">categories</span>
+              </a>
+            </div>
+          
+
+          
+            <div class="site-state-item site-state-tags">
+              <a href="/tags">
+                <span class="site-state-item-count">14</span>
+                <span class="site-state-item-name">tags</span>
+              </a>
+            </div>
+          
+
+        </nav>
+
+        
+          <div class="feed-link motion-element">
+            <a href="/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+        
+        
+          <div class="cc-license motion-element" itemprop="license">
+            <a href="http://creativecommons.org/licenses/by-nc-sa/4.0" class="cc-opacity" target="_blank">
+              <img src="/images/cc-by-nc-sa.svg" alt="Creative Commons" />
+            </a>
+          </div>
+        
+
+        <div class="links-of-author motion-element">
+          
+        </div>
+
+      </section>
+
+      
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc-indicator-top post-toc-indicator">
+            <i class="fa fa-angle-double-up"></i>
+          </div>
+          <div class="post-toc">
+            
+              
+            
+            
+              <p class="post-toc-empty">This post does not have a Table of Contents</p>
+            
+          </div>
+          <div class="post-toc-indicator-bottom post-toc-indicator">
+            <i class="fa fa-angle-double-down"></i>
+          </div>
+        </section>
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+  
+  &copy; 
+  <span itemprop="copyrightYear">2017</span>
+  <span class="with-love">
+    <i class="fa fa-heart"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">magicse7en</span>
+</div>
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="http://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist
+  </a>
+</div>
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top"></div>
+  </div>
+
+  
+
+
+  
+
+
+
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+  <script type="text/javascript" src="/vendors/jquery/index.js?v=2.1.3"></script>
+
+  <script type="text/javascript" src="/vendors/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+
+  <script type="text/javascript" src="/vendors/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+
+  <script type="text/javascript" src="/vendors/velocity/velocity.min.js"></script>
+
+  <script type="text/javascript" src="/vendors/velocity/velocity.ui.min.js"></script>
+
+  <script type="text/javascript" src="/vendors/fancybox/source/jquery.fancybox.pack.js"></script>
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=0.5.0"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=0.5.0"></script>
+
+
+
+  
+  
+
+  
+  
+<script type="text/javascript" src="/js/src/scrollspy.js?v=0.5.0"></script>
+
+<script type="text/javascript" id="sidebar.toc.highlight">
+  $(document).ready(function () {
+    var tocSelector = '.post-toc';
+    var $tocSelector = $(tocSelector);
+    var activeCurrentSelector = '.active-current';
+
+    $tocSelector
+      .on('activate.bs.scrollspy', function () {
+        var $currentActiveElement = $(tocSelector + ' .active').last();
+
+        removeCurrentActiveClass();
+        $currentActiveElement.addClass('active-current');
+
+        $tocSelector[0].scrollTop = $currentActiveElement.position().top;
+      })
+      .on('clear.bs.scrollspy', function () {
+        removeCurrentActiveClass();
+      });
+
+    function removeCurrentActiveClass () {
+      $(tocSelector + ' ' + activeCurrentSelector)
+        .removeClass(activeCurrentSelector.substring(1));
+    }
+
+    function processTOC () {
+      getTOCMaxHeight();
+      toggleTOCOverflowIndicators();
+    }
+
+    function getTOCMaxHeight () {
+      var height = $('.sidebar').height() -
+                   $tocSelector.position().top -
+                   $('.post-toc-indicator-bottom').height();
+
+      $tocSelector.css('height', height);
+
+      return height;
+    }
+
+    function toggleTOCOverflowIndicators () {
+      tocOverflowIndicator(
+        '.post-toc-indicator-top',
+        $tocSelector.scrollTop() > 0 ? 'show' : 'hide'
+      );
+
+      tocOverflowIndicator(
+        '.post-toc-indicator-bottom',
+        $tocSelector.scrollTop() >= $tocSelector.find('ol').height() - $tocSelector.height() ? 'hide' : 'show'
+      )
+    }
+
+    $(document).on('sidebar.motion.complete', function () {
+      processTOC();
+    });
+
+    $('body').scrollspy({ target: tocSelector });
+    $(window).on('resize', function () {
+      if ( $('.sidebar').hasClass('sidebar-active') ) {
+        processTOC();
+      }
+    });
+
+    onScroll($tocSelector);
+
+    function onScroll (element) {
+      element.on('mousewheel DOMMouseScroll', function (event) {
+          var oe = event.originalEvent;
+          var delta = oe.wheelDelta || -oe.detail;
+
+          this.scrollTop += ( delta < 0 ? 1 : -1 ) * 30;
+          event.preventDefault();
+
+          toggleTOCOverflowIndicators();
+      });
+    }
+
+    function tocOverflowIndicator (indicator, action) {
+      var $indicator = $(indicator);
+      var opacity = action === 'show' ? 1 : 0;
+      $indicator.velocity ?
+        $indicator.velocity('stop').velocity({
+          opacity: opacity
+        }, { duration: 100 }) :
+        $indicator.stop().animate({
+          opacity: opacity
+        }, 100);
+    }
+
+  });
+</script>
+
+<script type="text/javascript" id="sidebar.nav">
+  $(document).ready(function () {
+    var html = $('html');
+    var TAB_ANIMATE_DURATION = 200;
+    var hasVelocity = $.isFunction(html.velocity);
+
+    $('.sidebar-nav li').on('click', function () {
+      var item = $(this);
+      var activeTabClassName = 'sidebar-nav-active';
+      var activePanelClassName = 'sidebar-panel-active';
+      if (item.hasClass(activeTabClassName)) {
+        return;
+      }
+
+      var currentTarget = $('.' + activePanelClassName);
+      var target = $('.' + item.data('target'));
+
+      hasVelocity ?
+        currentTarget.velocity('transition.slideUpOut', TAB_ANIMATE_DURATION, function () {
+          target
+            .velocity('stop')
+            .velocity('transition.slideDownIn', TAB_ANIMATE_DURATION)
+            .addClass(activePanelClassName);
+        }) :
+        currentTarget.animate({ opacity: 0 }, TAB_ANIMATE_DURATION, function () {
+          currentTarget.hide();
+          target
+            .stop()
+            .css({'opacity': 0, 'display': 'block'})
+            .animate({ opacity: 1 }, TAB_ANIMATE_DURATION, function () {
+              currentTarget.removeClass(activePanelClassName);
+              target.addClass(activePanelClassName);
+            });
+        });
+
+      item.siblings().removeClass(activeTabClassName);
+      item.addClass(activeTabClassName);
+    });
+
+    $('.post-toc a').on('click', function (e) {
+      e.preventDefault();
+      var targetSelector = NexT.utils.escapeSelector(this.getAttribute('href'));
+      var offset = $(targetSelector).offset().top;
+      hasVelocity ?
+        html.velocity('stop').velocity('scroll', {
+          offset: offset  + 'px',
+          mobileHA: false
+        }) :
+        $('html, body').stop().animate({
+          scrollTop: offset
+        }, 500);
+    });
+
+    // Expand sidebar on post detail page by default, when post has a toc.
+    NexT.motion.middleWares.sidebar = function () {
+      var $tocContent = $('.post-toc-content');
+
+      if (CONFIG.scheme !== 'Pisces' && (CONFIG.sidebar.display === 'post' || CONFIG.sidebar.display === 'always')) {
+        if ($tocContent.length > 0 && $tocContent.html().trim().length > 0) {
+          NexT.utils.displaySidebar();
+        }
+      }
+    };
+  });
+</script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=0.5.0"></script>
+
+
+
+  
+
+  
+    
+  
+
+  <script type="text/javascript">
+    var duoshuoQuery = {short_name:"magicse7en"};
+    (function() {
+      var ds = document.createElement('script');
+      ds.type = 'text/javascript';ds.async = true;
+      ds.id = 'duoshuo-script';
+      ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+      ds.charset = 'UTF-8';
+      (document.getElementsByTagName('head')[0]
+      || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+  </script>
+
+  
+    
+  
+
+
+
+
+
+  
+  
+  
+
+  
+  
+
+
+</body>
+</html>

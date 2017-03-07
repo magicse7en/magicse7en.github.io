@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+
+    
+    
+  <url>
+    <loc>http://magicse7en.github.io/2017/03/07/magic-11s/</loc>
+    <lastmod>2017-03-07T15:42:56.268Z</lastmod>
+    <data>
+        <display>
+        <title>magic 11s</title>
+        <pubTime>2017-03-07T00:00:00.000Z</pubTime>
+        
+        <tag>ANR</tag>
+         
+        <tag>ftrace</tag>
+         
+         
+           
+             
+              <breadCrumb title="Linux" url="http://magicse7en.github.io/categories/Linux/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/08/18/arm-linux-imprecise-external-abort/</loc>
+    <lastmod>2017-03-07T15:42:56.268Z</lastmod>
+    <data>
+        <display>
+        <title>imprecise external abort</title>
+        <pubTime>2016-08-18T23:14:03.000Z</pubTime>
+        
+        <tag>imprecise abort</tag>
+         
+         
+           
+             
+              <breadCrumb title="Linux" url="http://magicse7en.github.io/categories/Linux/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/03/04/hello-world/</loc>
+    <lastmod>2017-03-07T15:42:56.268Z</lastmod>
+    <data>
+        <display>
+        <title>Hello World</title>
+        <pubTime>2016-03-04T00:00:00.000Z</pubTime>
+        
+         
+           
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/04/17/how-to-use-flux-in-ubuntu/</loc>
+    <lastmod>2017-03-07T15:42:56.268Z</lastmod>
+    <data>
+        <display>
+        <title>how to use flux in ubuntu</title>
+        <pubTime>2016-04-17T22:44:16.000Z</pubTime>
+        
+        <tag>f.lux</tag>
+         
+        <tag>Ubuntu</tag>
+         
+         
+           
+             
+              <breadCrumb title="Ubuntu" url="http://magicse7en.github.io/categories/Ubuntu/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/04/13/enable-bash-on-windows10/</loc>
+    <lastmod>2017-03-07T15:42:56.268Z</lastmod>
+    <data>
+        <display>
+        <title>Windows10上打开ubuntu bash shell</title>
+        <pubTime>2016-04-13T21:56:58.000Z</pubTime>
+        
+        <tag>Windows</tag>
+         
+        <tag>bash</tag>
+         
+         
+           
+             
+              <breadCrumb title="Windows" url="http://magicse7en.github.io/categories/Windows/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/08/19/bad-pmd-issue-analysis/</loc>
+    <lastmod>2017-03-07T15:42:56.268Z</lastmod>
+    <data>
+        <display>
+        <title>bad pmd issue analysis</title>
+        <pubTime>2016-08-19T00:00:00.000Z</pubTime>
+        
+        <tag>hwbp</tag>
+         
+         
+           
+             
+              <breadCrumb title="Linux" url="http://magicse7en.github.io/categories/Linux/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/03/08/lzo-decompress-kernel-zImage-crash-analysis/</loc>
+    <lastmod>2017-03-07T15:42:56.268Z</lastmod>
+    <data>
+        <display>
+        <title>lzo decompress kernel zImage crash analysis</title>
+        <pubTime>2016-03-08T23:05:08.000Z</pubTime>
+        
+        <tag>lzo</tag>
+         
+        <tag>zImage</tag>
+         
+         
+           
+             
+              <breadCrumb title="Linux" url="http://magicse7en.github.io/categories/Linux/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/04/01/golang-vim-configuration/</loc>
+    <lastmod>2016-04-04T00:00:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>VIM配置Golang开发环境</title>
+        <pubTime>2016-04-01T01:03:26.000Z</pubTime>
+        
+        <tag>Golang</tag>
+         
+        <tag>VIM</tag>
+         
+         
+           
+             
+              <breadCrumb title="Golang" url="http://magicse7en.github.io/categories/Golang/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/03/29/golang-env-setup/</loc>
+    <lastmod>2016-04-02T00:00:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>Golang环境配置及工程管理</title>
+        <pubTime>2016-03-29T23:55:42.000Z</pubTime>
+        
+        <tag>Golang</tag>
+         
+         
+           
+             
+              <breadCrumb title="Golang" url="http://magicse7en.github.io/categories/Golang/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/03/27/travis-ci-auto-deploy-hexo-github/</loc>
+    <lastmod>2016-03-28T00:00:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>使用Travis CI自动构建hexo博客</title>
+        <pubTime>2016-03-27T23:40:28.000Z</pubTime>
+        
+        <tag>hexo</tag>
+         
+        <tag>travis ci</tag>
+         
+         
+           
+             
+              <breadCrumb title="Blog" url="http://magicse7en.github.io/categories/Blog/"/>
+          
+        </display>
+    </data>
+    </url>
+
+    
+  <url>
+    <loc>http://magicse7en.github.io/2016/03/06/ubuntu-github-hexo-blog-setup/</loc>
+    <lastmod>2016-03-23T00:00:00.000Z</lastmod>
+    <data>
+        <display>
+        <title>Ubuntu + Github + Hexo搭建blog小记</title>
+        <pubTime>2016-03-06T00:00:00.000Z</pubTime>
+        
+        <tag>hexo</tag>
+         
+         
+           
+             
+              <breadCrumb title="Blog" url="http://magicse7en.github.io/categories/Blog/"/>
+          
+        </display>
+    </data>
+    </url>
+
+</urlset>

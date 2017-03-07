@@ -1,0 +1,548 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>CodingLife</title>
+  
+  <link href="/atom.xml" rel="self"/>
+  
+  <link href="http://magicse7en.github.io/"/>
+  <updated>2017-03-07T15:42:56.268Z</updated>
+  <id>http://magicse7en.github.io/</id>
+  
+  <author>
+    <name>magicse7en</name>
+    
+  </author>
+  
+  <generator uri="http://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>magic 11s</title>
+    <link href="http://magicse7en.github.io/2017/03/07/magic-11s/"/>
+    <id>http://magicse7en.github.io/2017/03/07/magic-11s/</id>
+    <published>2017-03-07T00:00:00.000Z</published>
+    <updated>2017-03-07T15:42:56.268Z</updated>
+    
+    <content type="html"><![CDATA[<p>The 3rd apk is hung up 11s while playback.</p>
+<p>The direct appearance is ANR: Input event dispatching timed out sending. This ANR is caused by mediaplayer process.</p>
+<p>Firstly, we use <code>top</code> to watch CPU loading, but find that CPU loading is not high when playback.</p>
+<p>Secondly, check <code>/proc/interrupts</code>, we cannot find any interrupt abnormal.</p>
+<p>This is a customer on-site issue, we only digg the log. We add some debug logs, and find that sometimes the interval printing two logs is 11s,it’s weird.</p>
+<p>We doubt that system scheduling maybe occur anomaly. So capture ftrace data.</p>
+<ol>
+<li><p>start ftrace</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line">mount -t debugfs nodev /sys/kernel/debug</div><div class="line">echo nop &gt; /sys/kernel/debug/tracing/current_tracer</div><div class="line">echo 0 &gt; /sys/kernel/debug/tracing/tracing_on</div><div class="line">echo &gt; /sys/kernel/debug/tracing/trace</div><div class="line">echo &quot;sched_switch sched_wakeup sched_wakeup_new sched_migrate_task irq timer&quot; &gt; /sys/kernel/debug/tracing/set_event</div><div class="line">echo &quot;workqueue_execute_start workqueue_execute_end block_rq_issue block_rq_insert block_rq_complete&quot; &gt;&gt; /sys/kernel/debug/tracing/set_event</div><div class="line">echo 20480 &gt; /sys/kernel/debug/tracing/buffer_size_kb</div><div class="line">echo 1 &gt; /sys/kernel/debug/tracing/tracing_on</div></pre></td></tr></table></figure>
+</li>
+<li><p>stop ftrace (stop ftrace immediately once be reproduced)</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">echo 0 &gt; /sys/kernel/debug/tracing/tracing_on</div><div class="line">cat /sys/kernel/debug/tracing/trace &gt; /data/ftrace.log</div><div class="line">echo 0 &gt; /sys/kernel/debug/tracing/trace</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>Notes: How to make ANR time printed by <code>logcat</code> to match Unix Timestamp. There is a very good tool: <a href="http://rimzy.net/tools/php_timestamp_converter.php" target="_blank" rel="external">http://rimzy.net/tools/php_timestamp_converter.php</a></p>
+<p>Go through digging ftrace data, we found a doubtful point: process X hasn’t scheduled about 11s.</p>
+<ul>
+<li>use <code>renice</code> and <code>tasklet</code> to improve process priority and bind process X to specific CPU, it’s no improvement.</li>
+<li>We found that process X <code>sched_wakeup</code> from idle process, it means process X is waked up by interrupt. The latest interrupt is uart interrupt.<br>So we disable uart log or change uart baud rate to 921600, the ANR disappeared.</li>
+</ul>
+<p>At last, we review n_tty_write() function.<br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div><div class="line">31</div><div class="line">32</div><div class="line">33</div><div class="line">34</div><div class="line">35</div><div class="line">36</div><div class="line">37</div><div class="line">38</div><div class="line">39</div><div class="line">40</div><div class="line">41</div><div class="line">42</div><div class="line">43</div><div class="line">44</div><div class="line">45</div><div class="line">46</div><div class="line">47</div><div class="line">48</div><div class="line">49</div><div class="line">50</div><div class="line">51</div><div class="line">52</div><div class="line">53</div><div class="line">54</div><div class="line">55</div><div class="line">56</div><div class="line">57</div><div class="line">58</div><div class="line">59</div><div class="line">60</div><div class="line">61</div><div class="line">62</div><div class="line">63</div><div class="line">64</div><div class="line">65</div><div class="line">66</div><div class="line">67</div><div class="line">68</div><div class="line">69</div><div class="line">70</div><div class="line">71</div><div class="line">72</div><div class="line">73</div><div class="line">74</div><div class="line">75</div><div class="line">76</div><div class="line">77</div></pre></td><td class="code"><pre><div class="line"><span class="number">2019</span> <span class="function"><span class="keyword">static</span> ssize_t <span class="title">n_tty_write</span><span class="params">(<span class="keyword">struct</span> tty_struct *tty, <span class="keyword">struct</span> file *file,</span></span></div><div class="line"><span class="number">2020</span>                            <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">char</span> *buf, <span class="keyword">size_t</span> nr)</div><div class="line">2021 &#123;</div><div class="line"><span class="number">2022</span>         <span class="keyword">const</span> <span class="keyword">unsigned</span> <span class="keyword">char</span> *b = buf;</div><div class="line"><span class="number">2023</span>         DECLARE_WAITQUEUE(wait, current);</div><div class="line"><span class="number">2024</span>         <span class="keyword">int</span> c;</div><div class="line"><span class="number">2025</span>         <span class="keyword">ssize_t</span> retval = <span class="number">0</span>;</div><div class="line"><span class="number">2026</span></div><div class="line"><span class="number">2027</span>         <span class="comment">/* Job control check -- must be done at start (POSIX.1 7.1.1.4). */</span></div><div class="line"><span class="number">2028</span>         <span class="keyword">if</span> (L_TOSTOP(tty) &amp;&amp; file-&gt;f_op-&gt;write != redirected_tty_write) &#123;</div><div class="line"><span class="number">2029</span>                 retval = tty_check_change(tty);</div><div class="line"><span class="number">2030</span>                 <span class="keyword">if</span> (retval)</div><div class="line"><span class="number">2031</span>                         <span class="keyword">return</span> retval;</div><div class="line"><span class="number">2032</span>         &#125;</div><div class="line"><span class="number">2033</span></div><div class="line"><span class="number">2034</span>         <span class="comment">/* Write out any echoed characters that are still pending */</span></div><div class="line"><span class="number">2035</span>         process_echoes(tty);</div><div class="line"><span class="number">2036</span></div><div class="line"><span class="number">2037</span>         add_wait_queue(&amp;tty-&gt;write_wait, &amp;wait);</div><div class="line"><span class="number">2038</span>         <span class="keyword">while</span> (<span class="number">1</span>) &#123;</div><div class="line"><span class="number">2039</span>                 set_current_state(TASK_INTERRUPTIBLE);</div><div class="line"><span class="number">2040</span>                 <span class="keyword">if</span> (signal_pending(current)) &#123;</div><div class="line"><span class="number">2041</span>                         retval = -ERESTARTSYS;</div><div class="line"><span class="number">2042</span>                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2043</span>                 &#125;</div><div class="line"><span class="number">2044</span>                 <span class="keyword">if</span> (tty_hung_up_p(file) || (tty-&gt;link &amp;&amp; !tty-&gt;link-&gt;count)) &#123;</div><div class="line"><span class="number">2045</span>                         retval = -EIO;</div><div class="line"><span class="number">2046</span>                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2047</span>                 &#125;</div><div class="line"><span class="number">2048</span>                 <span class="keyword">if</span> (O_OPOST(tty)) &#123;</div><div class="line"><span class="number">2049</span>                         <span class="keyword">while</span> (nr &gt; <span class="number">0</span>) &#123;</div><div class="line"><span class="number">2050</span>                                 <span class="keyword">ssize_t</span> num = process_output_block(tty, b, nr);</div><div class="line"><span class="number">2051</span>                                 <span class="keyword">if</span> (num &lt; <span class="number">0</span>) &#123;</div><div class="line"><span class="number">2052</span>                                         <span class="keyword">if</span> (num == -EAGAIN)</div><div class="line"><span class="number">2053</span>                                                 <span class="keyword">break</span>;</div><div class="line"><span class="number">2054</span>                                         retval = num;</div><div class="line"><span class="number">2055</span>                                         <span class="keyword">goto</span> break_out;</div><div class="line"><span class="number">2056</span>                                 &#125;</div><div class="line"><span class="number">2057</span>                                 b += num;</div><div class="line"><span class="number">2058</span>                                 nr -= num;</div><div class="line"><span class="number">2059</span>                                 <span class="keyword">if</span> (nr == <span class="number">0</span>)</div><div class="line"><span class="number">2060</span>                                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2061</span>                                 c = *b;</div><div class="line"><span class="number">2062</span>                                 <span class="keyword">if</span> (process_output(c, tty) &lt; <span class="number">0</span>)</div><div class="line"><span class="number">2063</span>                                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2064</span>                                 b++; nr--;</div><div class="line"><span class="number">2065</span>                         &#125;</div><div class="line"><span class="number">2066</span>                         <span class="keyword">if</span> (tty-&gt;ops-&gt;flush_chars)</div><div class="line"><span class="number">2067</span>                                 tty-&gt;ops-&gt;flush_chars(tty);</div><div class="line"><span class="number">2068</span>                 &#125; <span class="keyword">else</span> &#123;</div><div class="line"><span class="number">2069</span>                         <span class="keyword">while</span> (nr &gt; <span class="number">0</span>) &#123;</div><div class="line"><span class="number">2070</span>                                 c = tty-&gt;ops-&gt;write(tty, b, nr);</div><div class="line"><span class="number">2071</span>                                 <span class="keyword">if</span> (c &lt; <span class="number">0</span>) &#123;</div><div class="line"><span class="number">2072</span>                                         retval = c;</div><div class="line"><span class="number">2073</span>                                         <span class="keyword">goto</span> break_out;</div><div class="line"><span class="number">2074</span>                                 &#125;</div><div class="line"><span class="number">2075</span>                                 <span class="keyword">if</span> (!c)</div><div class="line"><span class="number">2076</span>                                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2077</span>                                 b += c;</div><div class="line"><span class="number">2078</span>                                 nr -= c;</div><div class="line"><span class="number">2079</span>                         &#125;</div><div class="line"><span class="number">2080</span>                 &#125;</div><div class="line"><span class="number">2081</span>                 <span class="keyword">if</span> (!nr)</div><div class="line"><span class="number">2082</span>                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2083</span>                 <span class="keyword">if</span> (file-&gt;f_flags &amp; O_NONBLOCK) &#123;</div><div class="line"><span class="number">2084</span>                         retval = -EAGAIN;</div><div class="line"><span class="number">2085</span>                         <span class="keyword">break</span>;</div><div class="line"><span class="number">2086</span>                 &#125;</div><div class="line"><span class="number">2087</span>                 schedule();</div><div class="line"><span class="number">2088</span>         &#125;</div><div class="line"><span class="number">2089</span> break_out:</div><div class="line"><span class="number">2090</span>         __set_current_state(TASK_RUNNING);</div><div class="line"><span class="number">2091</span>         remove_wait_queue(&amp;tty-&gt;write_wait, &amp;wait);</div><div class="line"><span class="number">2092</span>         <span class="keyword">if</span> (b - buf != nr &amp;&amp; tty-&gt;fasync)</div><div class="line"><span class="number">2093</span>                 set_bit(TTY_DO_WRITE_WAKEUP, &amp;tty-&gt;flags);</div><div class="line"><span class="number">2094</span>         <span class="keyword">return</span> (b - buf) ? b - buf : retval;</div><div class="line"><span class="number">2095</span> &#125;</div></pre></td></tr></table></figure></p>
+<p>Write data in while loop. When user space process uses blocking write method, if write fail, it will yield cpu and wake up untill the condition is met. In this ANR case, the root cause is that user space process instant log data is huge and block in n_tty_write().</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;The 3rd apk is hung up 11s while playback.&lt;/p&gt;
+&lt;p&gt;The direct appearance is ANR: Input event dispatching timed out sending. This ANR is ca
+    
+    </summary>
+    
+      <category term="Linux" scheme="http://magicse7en.github.io/categories/Linux/"/>
+    
+    
+      <category term="ANR" scheme="http://magicse7en.github.io/tags/ANR/"/>
+    
+      <category term="ftrace" scheme="http://magicse7en.github.io/tags/ftrace/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>bad pmd issue analysis</title>
+    <link href="http://magicse7en.github.io/2016/08/19/bad-pmd-issue-analysis/"/>
+    <id>http://magicse7en.github.io/2016/08/19/bad-pmd-issue-analysis/</id>
+    <published>2016-08-19T00:00:00.000Z</published>
+    <updated>2017-03-07T15:42:56.268Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h1><p>Kernel: linux3.10</p>
+<p>发生概率性死机：</p>
+<blockquote>
+<p>mm/memory.c:399: bad pmd 15141312<br>Segmentation fault<br>BUG: Bad rss-counter state mm:ce964380 idx:0 val:5<br>BUG: Bad rss-counter state mm:ce964380 idx:1 val:1</p>
+</blockquote>
+<a id="more"></a>
+<h1 id="Debug"><a href="#Debug" class="headerlink" title="Debug"></a>Debug</h1><p>对发生Segmentation fault的user space process注册signal handler, 发现死机时并没有进入到signal handler中。在kernel <code>__do_uesr_fault</code>中判断SIGSEGV时dump register, rebuild出backtrace, 发现每次都不一样，结合汇编code来看，没有发现可疑的地方。<br>bad pmd的提示比较怀疑该process的地址空间的pgd已经出现问题，然后再发生的SIGSEGV.<br>因为是烧机问题，所以利用hw breakpoint来监控process的task_struct的mm-&gt;pgd.</p>
+<p>hw breakpoint config<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line">CONFIG_HAVE_HW_BREAKPOINT=y</div><div class="line">CONFIG_PERF_EVENTS=y</div><div class="line"># CONFIG_HAVE_PERF_EVENTS is not sest</div><div class="line"># CONFIG_DEBUG_PERF_USE_VMALLOC is not set</div><div class="line"># CONFIG_HW_PERF_EVENTS is not set</div></pre></td></tr></table></figure></p>
+<p>参考<code>samples/hw_breakpoint/data_breakpoint.c</code>的code对出问题的process的mm-&gt;pgd添加写监控。</p>
+<figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/* init &amp; register hwbp handler*/</span></div><div class="line">hw_break_module_init()</div><div class="line">    -&gt; hw_breakpoint_init()</div><div class="line">    -&gt; register_wide_hw_breakpoint(&amp;attr, sample_hbp_handler, <span class="literal">NULL</span>)</div><div class="line"><span class="comment">/* exit &amp; unregister hwbp */</span></div><div class="line">hw_break_module_exit()</div></pre></td></tr></table></figure>
+<p>然后再重新烧机复制，果然发现pgd有被盖写，通过打印的backtrace即可锁定凶手。</p>
+<h1 id="延伸"><a href="#延伸" class="headerlink" title="延伸"></a>延伸</h1><p>user space如何使用hw breakpoint ?</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;Background&quot;&gt;&lt;a href=&quot;#Background&quot; class=&quot;headerlink&quot; title=&quot;Background&quot;&gt;&lt;/a&gt;Background&lt;/h1&gt;&lt;p&gt;Kernel: linux3.10&lt;/p&gt;
+&lt;p&gt;发生概率性死机：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;mm/memory.c:399: bad pmd 15141312&lt;br&gt;Segmentation fault&lt;br&gt;BUG: Bad rss-counter state mm:ce964380 idx:0 val:5&lt;br&gt;BUG: Bad rss-counter state mm:ce964380 idx:1 val:1&lt;/p&gt;
+&lt;/blockquote&gt;
+    
+    </summary>
+    
+      <category term="Linux" scheme="http://magicse7en.github.io/categories/Linux/"/>
+    
+    
+      <category term="hwbp" scheme="http://magicse7en.github.io/tags/hwbp/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>imprecise external abort</title>
+    <link href="http://magicse7en.github.io/2016/08/18/arm-linux-imprecise-external-abort/"/>
+    <id>http://magicse7en.github.io/2016/08/18/arm-linux-imprecise-external-abort/</id>
+    <published>2016-08-18T23:14:03.000Z</published>
+    <updated>2017-03-07T15:42:56.268Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h1><p>CPU: ARMv7</p>
+<p>开机到kernel某个固定阶段发生死机，死机信息都是imprecise external abort. </p>
+<blockquote>
+<p>Unhandled fault: imprecise external abort (0x1c06) at 0x7cab1234</p>
+</blockquote>
+<a id="more"></a>
+<h1 id="Debug"><a href="#Debug" class="headerlink" title="Debug"></a>Debug</h1><p>imprecise external abort比较少见，一般来讲abort的时候已经是滞后性的了，也就是说abort仔细check打印的backtrace, 都看不出任何的问题。<br>先看下kernel中打印<code>imprecise external abort</code>的地方。</p>
+<p><code>arch/arm/mm/fsr-2level.c</code><br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">static</span> <span class="keyword">struct</span> fsr_info fsr_info[] = &#123;</div><div class="line"> ...</div><div class="line"> &#123; do_bad,               SIGBUS,  BUS_OBJERR,    <span class="string">"imprecise external abort"</span>         &#125;, <span class="comment">/* xscale */</span></div><div class="line"> ...</div><div class="line">&#125;;</div></pre></td></tr></table></figure></p>
+<p><code>arch/arm/mm/fault.c</code><br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div></pre></td><td class="code"><pre><div class="line"><span class="comment">/*</span></div><div class="line"> * Dispatch a data abort to the relevant handler.</div><div class="line"> */</div><div class="line">asmlinkage <span class="keyword">void</span> __<span class="function">exception</span></div><div class="line"><span class="title">do_DataAbort</span><span class="params">(<span class="keyword">unsigned</span> <span class="keyword">long</span> addr, <span class="keyword">unsigned</span> <span class="keyword">int</span> fsr, <span class="keyword">struct</span> pt_regs *regs)</span></div><div class="line">&#123;</div><div class="line">        <span class="keyword">const</span> <span class="keyword">struct</span> fsr_info *inf = fsr_info + fsr_fs(fsr);</div><div class="line">        <span class="keyword">struct</span> siginfo info;</div><div class="line"></div><div class="line">        <span class="keyword">if</span> (!inf-&gt;fn(addr, fsr &amp; ~FSR_LNX_PF, regs))</div><div class="line">                <span class="keyword">return</span>;</div><div class="line"></div><div class="line">        printk(KERN_ALERT <span class="string">"Unhandled fault: %s (0x%03x) at 0x%08lx\n"</span>,</div><div class="line">                inf-&gt;name, fsr, addr);</div><div class="line"></div><div class="line">        info.si_signo = inf-&gt;sig;</div><div class="line">        info.si_errno = <span class="number">0</span>;</div><div class="line">        info.si_code  = inf-&gt;code;</div><div class="line">        info.si_addr  = (<span class="keyword">void</span> __user *)addr;</div><div class="line">        arm_notify_die(<span class="string">""</span>, regs, &amp;info, fsr, <span class="number">0</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p><code>do_DataAbort</code>的第二个参数fsr很有参考价值，是<code>fault status register</code>, 第一个参数addr是<code>fault address register</code>.<br>这2个register的具体含义可以查阅arm trm.</p>
+<p>这个时候fault address register记录的并不一定是出错的地址。查看下fsr 0x1c06的意思是什么，对比register description.</p>
+<p>Table 4-226 DFSR bit assignments for Short-descriptor translation table format</p>
+<table>
+<thead>
+<tr>
+<th>Bits</th>
+<th>Name</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>[31:14]</td>
+<td>-</td>
+<td>Reserved, RES0.</td>
+</tr>
+<tr>
+<td>[13]</td>
+<td>CM</td>
+<td>Cache maintenance fault. For synchronous faults, this bit indicates whether a cache maintenance operation generated the fault:  0 Abort not caused by a cache maintenance operation.  1 Abort caused by a cache maintenance operation.</td>
+</tr>
+<tr>
+<td>[12]</td>
+<td>ExT</td>
+<td>External abort type. This field indicates whether an AXI Decode or Slave error caused an abort: 0 External abort marked as DECERR.  <strong>1 External abort marked as SLVERR.</strong> For aborts other than external aborts this bit always returns 0.</td>
+</tr>
+<tr>
+<td>[11]</td>
+<td>WnR</td>
+<td>Write not Read bit. This field indicates whether the abort was caused by a write or a read access: 0 Abort caused by a read access.  <strong>1 Abort caused by a write access.</strong> For faults on CP15 cache maintenance operations, including the VA to PA translation operations, this bit always returns a value of 1.</td>
+</tr>
+<tr>
+<td>[10]</td>
+<td>FS[4]</td>
+<td>Part of the Fault Status field. See bits [3:0] in this table.</td>
+</tr>
+<tr>
+<td>[9]</td>
+<td>-</td>
+<td>RAZ.</td>
+</tr>
+<tr>
+<td>[8]</td>
+<td>-</td>
+<td>Reserved, RES0.</td>
+</tr>
+<tr>
+<td>[7:4]</td>
+<td>Domain</td>
+<td>Specifies which of the 16 domains, D15-D0, was being accessed when a data fault occurred. For permission faults that generate Data Abort exception, this field is UNKNOWN. ARMv8 deprecates any use of the domain field in the DFSR.</td>
+</tr>
+<tr>
+<td>[3:0]</td>
+<td>FS[3:0]</td>
+<td>Fault Status bits. This field indicates the type of exception generated. Any encoding not listed is reserved.</td>
+</tr>
+</tbody>
+</table>
+<p>FS[3:0] :<br>0b00001 Alignment fault.<br>0b00010 Debug event.<br>0b00011 Access flag fault, section.<br>0b00100 Instruction cache maintenance fault.<br>0b00101 Translation fault, section.<br><strong>0b00110 Access flag fault, page.</strong><br>0b00111 Translation fault, page.<br>0b01000 Synchronous external abort, non-translation.<br>0b01001 Domain fault, section.<br>0b01011 Domain fault, page.<br>0b01100 Synchronous external abort on translation table walk, first level.<br>0b01101 Permission fault, section.<br>0b01110 Synchronous external abort on translation table walk, second level.<br>0b01111 Permission fault, second level.<br>0b10000 TLB conflict abort.<br>0b10101 LDREX or STREX abort.<br>0b10110 Asynchronous external abort.<br>0b11000 Asynchronous parity error on memory access.<br>0b11001 Synchronous parity error on memory access.<br>0b11100 Synchronous parity error on translation table walk, first level.<br>0b11110 Synchronous parity error on translation table walk, second level. </p>
+<p>还是不知道出错的地方在哪里。这种imprecise external abort可能是BUS error, 想到这款IC有bus monitor的功能，check bus记录的发生abort的register, 还真记录下一个写DRAM address发的生abort.<br>进一步check发现写这个DRAM address其实是在很早之前的uboot阶段。写的DRAM address超出了DRAM size而导致的问题。将其fix掉，则没有了imprecise external abort, 可以正常开机了。</p>
+<p>那么为什么在uboot阶段没有及时abort呢？ 因为uboot阶段CPSR.A是mask的，如果将uboot阶段CPSR.A改成unmask, 然后再复现此问题，那么uboot阶段就会比较及时地收到abort, 进入异常向量的abort处理流程。</p>
+<h1 id="What-is-imprecise-abort"><a href="#What-is-imprecise-abort" class="headerlink" title="What is imprecise abort?"></a>What is imprecise abort?</h1><p>[1] <a href="https://community.arm.com/thread/5622" target="_blank" rel="external">https://community.arm.com/thread/5622</a></p>
+<p>[2] <a href="http://stackoverflow.com/questions/27507013/synchronous-external-abort-on-arm" target="_blank" rel="external">http://stackoverflow.com/questions/27507013/synchronous-external-abort-on-arm</a></p>
+<blockquote>
+<p>An <strong>abort</strong> means the CPU tried to make a memory access, which for whatever reason, couldn’t be completed so raises an exception.<br>An <strong>external abort</strong> is one from, well, externally to the processor, i.e. something on the bus. In other words, the access didn’t fault in the MMU, went out onto the bus, and either some device or the interconnect itself came back and said “hey, I can’t deal with this”.<br>A <strong>synchronous external</strong> abort means you’re rather fortunate, in that it’s not going to be utterly hideous to debug - in the case of a prefetch abort, it means the IFAR is going to contain a valid VA for the faulting instruction, so you know exactly what caused it. The unpleasant alternative is an <strong>asynchronous external abort</strong>, which is little more than an interrupt to say “hey, something you did a while ago didn’t actually work. No I don’t know what is was either.”</p>
+</blockquote>
+<p>[3] <a href="http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/14809.html" target="_blank" rel="external">http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/14809.html</a></p>
+<p>[4] <a href="http://lists.infradead.org/pipermail/linux-arm-kernel/2011-November/072495.html" target="_blank" rel="external">http://lists.infradead.org/pipermail/linux-arm-kernel/2011-November/072495.html</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;Background&quot;&gt;&lt;a href=&quot;#Background&quot; class=&quot;headerlink&quot; title=&quot;Background&quot;&gt;&lt;/a&gt;Background&lt;/h1&gt;&lt;p&gt;CPU: ARMv7&lt;/p&gt;
+&lt;p&gt;开机到kernel某个固定阶段发生死机，死机信息都是imprecise external abort. &lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Unhandled fault: imprecise external abort (0x1c06) at 0x7cab1234&lt;/p&gt;
+&lt;/blockquote&gt;
+    
+    </summary>
+    
+      <category term="Linux" scheme="http://magicse7en.github.io/categories/Linux/"/>
+    
+    
+      <category term="imprecise abort" scheme="http://magicse7en.github.io/tags/imprecise-abort/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>how to use flux in ubuntu</title>
+    <link href="http://magicse7en.github.io/2016/04/17/how-to-use-flux-in-ubuntu/"/>
+    <id>http://magicse7en.github.io/2016/04/17/how-to-use-flux-in-ubuntu/</id>
+    <published>2016-04-17T22:44:16.000Z</published>
+    <updated>2017-03-07T15:42:56.268Z</updated>
+    
+    <content type="html"><![CDATA[<p><strong><em><a href="https://justgetflux.com/" target="_blank" rel="external">f.lux</a></em></strong>是一款出色的护眼软件，可根据所在地的日出日落时间动态调节色温，过滤蓝光。一旦用上它，你会发现就再也无法离开它了。<br><a id="more"></a></p>
+<h1 id="Install-fluxgui"><a href="#Install-fluxgui" class="headerlink" title="Install fluxgui"></a>Install fluxgui</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">sudo add-apt-repository ppa:kilian/f.lux</div><div class="line">sudo apt-get update</div><div class="line">sudo apt-get install fluxgui</div></pre></td></tr></table></figure>
+<p>然后运行fluxgui, 勾选上”Autostart f.lux indeicator applet”，填写好所在地的经纬度，设置完成。<br>此时发现flux并没有正常work. 还需要安装flux.<br><img src="/img/f.lux_indicator_applet_preferences_001.png" alt="f.lux-indicator-applet-preferences.png"></p>
+<h1 id="Install-flux"><a href="#Install-flux" class="headerlink" title="Install flux"></a>Install flux</h1><p>上面安装的仅仅是一个GUI, 核心的flux还需要重新安装下。<br>64bit版本：<a href="https://justgetflux.com/linux/xflux64.tgz" target="_blank" rel="external">xflux64.tgz</a><br>32bit版本：<a href="https://justgetflux.com/linux/xflux-pre.tgz" target="_blank" rel="external">xflux32.tgz</a><br>然后解压，将解压出来的xflux拷贝到/usr/bin/下即可。<br>再设置fluxgui，即可生效。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;&lt;strong&gt;&lt;em&gt;&lt;a href=&quot;https://justgetflux.com/&quot;&gt;f.lux&lt;/a&gt;&lt;/em&gt;&lt;/strong&gt;是一款出色的护眼软件，可根据所在地的日出日落时间动态调节色温，过滤蓝光。一旦用上它，你会发现就再也无法离开它了。&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Ubuntu" scheme="http://magicse7en.github.io/categories/Ubuntu/"/>
+    
+    
+      <category term="f.lux" scheme="http://magicse7en.github.io/tags/f-lux/"/>
+    
+      <category term="Ubuntu" scheme="http://magicse7en.github.io/tags/Ubuntu/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Windows10上打开ubuntu bash shell</title>
+    <link href="http://magicse7en.github.io/2016/04/13/enable-bash-on-windows10/"/>
+    <id>http://magicse7en.github.io/2016/04/13/enable-bash-on-windows10/</id>
+    <published>2016-04-13T21:56:58.000Z</published>
+    <updated>2017-03-07T15:42:56.268Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h1><p><img src="/img/bash-coming-to-windows.png" alt="bash-coming-to-windows.png"><br><a id="more"></a><br>Windows 10 Build14316开始支持ubuntu bash.<br>程序和功能 -&gt; 启用或关闭Windows功能 -&gt; 选中”Windows Subsystem for linux(Beta)”<br><img src="/img/bash-on-ubuntu-on-windows-10-linux-subsystem.jpg" alt="bash-on-ubuntu-on-windows-10-linux-subsystem.jpg"><br>在命令行窗口中输入bash, 即可下载bash并安装使用。</p>
+<h1 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h1><p>bash shell是作为Windows一个subsystem: WSL(Windows Subsystem for Linux)<br><img src="/img/Ubuntu-runs-via-a-Linux-subsystem-in-Windows-10.png" alt="Ubuntu-runs-via-a-Linux-subsystem-in-Windows-10.png"></p>
+<h1 id="Performance"><a href="#Performance" class="headerlink" title="Performance"></a>Performance</h1><p><a href="http://www.phoronix.com/scan.php?page=article&amp;item=windows-10-lxcore&amp;num=1" target="_blank" rel="external">The Performance Of Ubuntu Software Running On Windows 10 With The New Linux Subsystem</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;安装&quot;&gt;&lt;a href=&quot;#安装&quot; class=&quot;headerlink&quot; title=&quot;安装&quot;&gt;&lt;/a&gt;安装&lt;/h1&gt;&lt;p&gt;&lt;img src=&quot;/img/bash-coming-to-windows.png&quot; alt=&quot;bash-coming-to-windows.png&quot;&gt;&lt;br&gt;
+    
+    </summary>
+    
+      <category term="Windows" scheme="http://magicse7en.github.io/categories/Windows/"/>
+    
+    
+      <category term="Windows" scheme="http://magicse7en.github.io/tags/Windows/"/>
+    
+      <category term="bash" scheme="http://magicse7en.github.io/tags/bash/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>VIM配置Golang开发环境</title>
+    <link href="http://magicse7en.github.io/2016/04/01/golang-vim-configuration/"/>
+    <id>http://magicse7en.github.io/2016/04/01/golang-vim-configuration/</id>
+    <published>2016-04-01T01:03:26.000Z</published>
+    <updated>2016-04-04T00:00:00.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>直接使用<strong>vim-as-golang-ide</strong>来配置非常简单，具体操作如下。<br><a href="http://farazdagi.com/blog/2015/vim-as-golang-ide/" target="_blank" rel="external">http://farazdagi.com/blog/2015/vim-as-golang-ide/</a><br>对应Github地址：<a href="https://github.com/farazdagi/vim-go-ide" target="_blank" rel="external">https://github.com/farazdagi/vim-go-ide</a><br>然后执行<code>vim -u ~/.vimrc.go</code>即可，如果嫌麻烦，可以设置alias.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">alias</span> vimgo=<span class="string">'vim -u ~/.vimrc.go'</span></div></pre></td></tr></table></figure></p>
+<p><strong>vim-as-golang-ide</strong>实际上用到的仍然是<strong>vim-go</strong>. vim-as-golang-ide的好处时不破坏系统vim的设置。<br>vim-go: <a href="https://github.com/fatih/vim-go" target="_blank" rel="external">https://github.com/fatih/vim-go</a></p>
+<p>执行完<code>vim -u ~/.vimrc.go</code>出现如下错误。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">CSApprox skipped; terminal only has 8 colors, not 88/256</div><div class="line">Try checking :<span class="built_in">help</span> csapprox-terminal <span class="keyword">for</span> workarounds</div><div class="line">请按 ENTER 或其它命令继续</div></pre></td></tr></table></figure></p>
+<p>可在<code>~/.vimrc.go</code>中进行如下设置。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">set</span> t_Co=256</div></pre></td></tr></table></figure></p>
+<p>在进行<code>:GoInstallBinaries</code>之前需要临时设置<code>$GOBIN</code>环境变量，以便vim-go需要的binary放在<code>/usr/local/go/bin</code>下。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">export</span> GOBIN=<span class="variable">$GOROOT</span>/bin</div></pre></td></tr></table></figure></p>
+<blockquote>
+<p>Please be sure all necessary binaries are installed (such as gocode, godef, goimports, etc.). You can easily install them with the included :GoInstallBinaries command. If invoked, all necessary binaries will be automatically downloaded and installed to your $GOBIN environment (if not set it will use $GOPATH/bin). Note that this command requires git for fetching the individual Go packages. Additionally, use :GoUpdateBinaries to update the installed binaries.<br>– <a href="https://github.com/fatih/vim-go" target="_blank" rel="external">https://github.com/fatih/vim-go</a></p>
+</blockquote>
+<p>vim-go依赖于很多其他binary，需自备梯子。<br>国内有个Go Package Manager: <a href="https://gopm.io/" target="_blank" rel="external">https://gopm.io/</a> 可以下载到被墙的binaries.</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;直接使用&lt;strong&gt;vim-as-golang-ide&lt;/strong&gt;来配置非常简单，具体操作如下。&lt;br&gt;&lt;a href=&quot;http://farazdagi.com/blog/2015/vim-as-golang-ide/&quot; target=&quot;_blank&quot; rel=
+    
+    </summary>
+    
+      <category term="Golang" scheme="http://magicse7en.github.io/categories/Golang/"/>
+    
+    
+      <category term="Golang" scheme="http://magicse7en.github.io/tags/Golang/"/>
+    
+      <category term="VIM" scheme="http://magicse7en.github.io/tags/VIM/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Golang环境配置及工程管理</title>
+    <link href="http://magicse7en.github.io/2016/03/29/golang-env-setup/"/>
+    <id>http://magicse7en.github.io/2016/03/29/golang-env-setup/</id>
+    <published>2016-03-29T23:55:42.000Z</published>
+    <updated>2016-04-02T00:00:00.000Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Install-Golang"><a href="#Install-Golang" class="headerlink" title="Install Golang"></a>Install Golang</h1><p>Golang安装参考<a href="https://golang.org/doc/install" target="_blank" rel="external">https://golang.org/doc/install</a></p>
+<h1 id="相关环境变量"><a href="#相关环境变量" class="headerlink" title="相关环境变量"></a>相关环境变量</h1><p>环境变量设置，将如下设置写到~/.profile文件中：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">export</span> GOROOT=/usr/<span class="built_in">local</span>/go</div><div class="line"><span class="built_in">export</span> GOBIN=<span class="variable">$GOROOT</span>/bin</div><div class="line"><span class="built_in">export</span> GOPATH=<span class="variable">$HOME</span>/go</div><div class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:<span class="variable">$GOPATH</span>:<span class="variable">$GOBIN</span></div></pre></td></tr></table></figure></p>
+<h2 id="GOROOT"><a href="#GOROOT" class="headerlink" title="GOROOT"></a>GOROOT</h2><p>GOROOT是go的安装路径<br>package runtime中：<br><a href="https://golang.org/src/runtime/extern.go?h=GOROOT#L213" target="_blank" rel="external">/src/runtime/extern.go:213</a><br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div></pre></td><td class="code"><pre><div class="line"><span class="number">210</span>	<span class="comment">// GOROOT returns the root of the Go tree.</span></div><div class="line"><span class="number">211</span>	<span class="comment">// It uses the GOROOT environment variable, if set,</span></div><div class="line"><span class="number">212</span>	<span class="comment">// or else the root used during the Go build.</span></div><div class="line"><span class="number">213</span>	<span class="function"><span class="keyword">func</span> <span class="title">GOROOT</span><span class="params">()</span> <span class="title">string</span></span> &#123;</div><div class="line"><span class="number">214</span>		s := gogetenv(<span class="string">"GOROOT"</span>)</div><div class="line"><span class="number">215</span>		<span class="keyword">if</span> s != <span class="string">""</span> &#123;</div><div class="line"><span class="number">216</span>			<span class="keyword">return</span> s</div><div class="line"><span class="number">217</span>		&#125;</div><div class="line"><span class="number">218</span>		<span class="keyword">return</span> sys.DefaultGoroot</div><div class="line"><span class="number">219</span>	&#125;</div></pre></td></tr></table></figure></p>
+<a id="more"></a>
+<h2 id="GOPATH"><a href="#GOPATH" class="headerlink" title="GOPATH"></a>GOPATH</h2><p>GOPATH是go的工作目录<br>package build中：<br><a href="https://golang.org/src/go/build/build.go?h=gopath#L204" target="_blank" rel="external">/src/go/build/build.go:204</a><br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div><div class="line">24</div><div class="line">25</div><div class="line">26</div><div class="line">27</div><div class="line">28</div><div class="line">29</div><div class="line">30</div></pre></td><td class="code"><pre><div class="line"><span class="number">203</span>	<span class="comment">// gopath returns the list of Go path directories.</span></div><div class="line"><span class="number">204</span>	<span class="function"><span class="keyword">func</span> <span class="params">(ctxt *Context)</span> <span class="title">gopath</span><span class="params">()</span> []<span class="title">string</span></span> &#123;</div><div class="line"><span class="number">205</span>		<span class="keyword">var</span> all []<span class="keyword">string</span></div><div class="line"><span class="number">206</span>		<span class="keyword">for</span> _, p := <span class="keyword">range</span> ctxt.splitPathList(ctxt.GOPATH) &#123;</div><div class="line"><span class="number">207</span>			<span class="keyword">if</span> p == <span class="string">""</span> || p == ctxt.GOROOT &#123;</div><div class="line"><span class="number">208</span>				<span class="comment">// Empty paths are uninteresting.</span></div><div class="line"><span class="number">209</span>				<span class="comment">// If the path is the GOROOT, ignore it.</span></div><div class="line"><span class="number">210</span>				<span class="comment">// People sometimes set GOPATH=$GOROOT.</span></div><div class="line"><span class="number">211</span>				<span class="comment">// Do not get confused by this common mistake.</span></div><div class="line"><span class="number">212</span>				<span class="keyword">continue</span></div><div class="line"><span class="number">213</span>			&#125;</div><div class="line"><span class="number">214</span>			<span class="keyword">if</span> strings.HasPrefix(p, <span class="string">"~"</span>) &#123;</div><div class="line"><span class="number">215</span>				<span class="comment">// Path segments starting with ~ on Unix are almost always</span></div><div class="line"><span class="number">216</span>				<span class="comment">// users who have incorrectly quoted ~ while setting GOPATH,</span></div><div class="line"><span class="number">217</span>				<span class="comment">// preventing it from expanding to $HOME.</span></div><div class="line"><span class="number">218</span>				<span class="comment">// The situation is made more confusing by the fact that</span></div><div class="line"><span class="number">219</span>				<span class="comment">// bash allows quoted ~ in $PATH (most shells do not).</span></div><div class="line"><span class="number">220</span>				<span class="comment">// Do not get confused by this, and do not try to use the path.</span></div><div class="line"><span class="number">221</span>				<span class="comment">// It does not exist, and printing errors about it confuses</span></div><div class="line"><span class="number">222</span>				<span class="comment">// those users even more, because they think "sure ~ exists!".</span></div><div class="line"><span class="number">223</span>				<span class="comment">// The go command diagnoses this situation and prints a</span></div><div class="line"><span class="number">224</span>				<span class="comment">// useful error.</span></div><div class="line"><span class="number">225</span>				<span class="comment">// On Windows, ~ is used in short names, such as c:\progra~1</span></div><div class="line"><span class="number">226</span>				<span class="comment">// for c:\program files.</span></div><div class="line"><span class="number">227</span>				<span class="keyword">continue</span></div><div class="line"><span class="number">228</span>			&#125;</div><div class="line"><span class="number">229</span>			all = <span class="built_in">append</span>(all, p)</div><div class="line"><span class="number">230</span>		&#125;</div><div class="line"><span class="number">231</span>		<span class="keyword">return</span> all</div><div class="line"><span class="number">232</span>	&#125;</div></pre></td></tr></table></figure></p>
+<h2 id="GOBIN"><a href="#GOBIN" class="headerlink" title="GOBIN"></a>GOBIN</h2><p>GOBIN指向go安装目录中bin的位置<br>package main中：<br><a href="https://golang.org/src/cmd/go/build.go?h=gobin#L742" target="_blank" rel="external">/src/cmd/go/build.go:742</a><br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="number">740</span>	<span class="keyword">var</span> (</div><div class="line"><span class="number">741</span>		goroot    = filepath.Clean(runtime.GOROOT())</div><div class="line"><span class="number">742</span>		gobin     = os.Getenv(<span class="string">"GOBIN"</span>)</div><div class="line"><span class="number">743</span>		gorootBin = filepath.Join(goroot, <span class="string">"bin"</span>)</div><div class="line"><span class="number">744</span>		gorootPkg = filepath.Join(goroot, <span class="string">"pkg"</span>)</div><div class="line"><span class="number">745</span>		gorootSrc = filepath.Join(goroot, <span class="string">"src"</span>)</div><div class="line"><span class="number">746</span>	)</div></pre></td></tr></table></figure></p>
+<h2 id="扩展：go-env"><a href="#扩展：go-env" class="headerlink" title="扩展：go env"></a>扩展：go env</h2><p><strong><em>go env</em></strong>可查看更多的环境变量。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line"><span class="variable">$go</span> env</div><div class="line">GOARCH=<span class="string">"amd64"</span>                  <span class="comment"># 编译之后可执行程序的CPU体系架构</span></div><div class="line">GOBIN=<span class="string">"/usr/local/go/bin"</span></div><div class="line">GOEXE=<span class="string">""</span>                        <span class="comment"># ？</span></div><div class="line">GOHOSTARCH=<span class="string">"amd64"</span>              <span class="comment"># 主题CPU体系架构</span></div><div class="line">GOHOSTOS=<span class="string">"linux"</span>                <span class="comment"># 主机操作系统</span></div><div class="line">GOOS=<span class="string">"linux"</span>                    <span class="comment"># GO程序的运行的操作系统</span></div><div class="line">GOPATH=<span class="string">""</span></div><div class="line">GORACE=<span class="string">""</span>                       <span class="comment"># 应该是跟race有关？</span></div><div class="line">GOROOT=<span class="string">"/usr/local/go"</span></div><div class="line">GOTOOLDIR=<span class="string">"/usr/local/go/pkg/tool/linux_amd64"</span>          <span class="comment"># tool路径，比如cgo, compile, etc.</span></div><div class="line">GO15VENDOREXPERIMENT=<span class="string">"1"</span>                                <span class="comment"># 即将废除的东西</span></div><div class="line">CC=<span class="string">"gcc"</span>                                                <span class="comment"># C编译器, default是gcc, 也支持clang</span></div><div class="line">GOGCCFLAGS=<span class="string">"-fPIC -m64 -pthread -fmessage-length=0"</span>     <span class="comment"># 编译参数</span></div><div class="line">CXX=<span class="string">"g++"</span>                                               <span class="comment"># C++编译器，default是g++，也支持clang++</span></div><div class="line">CGO_ENABLED=<span class="string">"1"</span>                                         <span class="comment"># 在build过程中控制cgo的用法</span></div></pre></td></tr></table></figure></p>
+<p><strong><em>GO15VENDOREXPERIMENT</em></strong><br>package main<br><a href="https://golang.org/src/cmd/go/pkg.go?h=go15VendorExperiment#L273" target="_blank" rel="external">/src/cmd/go/pkg.go:273</a><br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div></pre></td><td class="code"><pre><div class="line"><span class="number">266</span>	<span class="comment">// The Go 1.5 vendoring experiment was enabled by setting GO15VENDOREXPERIMENT=1.</span></div><div class="line"><span class="number">267</span>	<span class="comment">// In Go 1.6 this is on by default and is disabled by setting GO15VENDOREXPERIMENT=0.</span></div><div class="line"><span class="number">268</span>	<span class="comment">// In Go 1.7 the variable will stop having any effect.</span></div><div class="line"><span class="number">269</span>	<span class="comment">// The variable is obnoxiously long so that years from now when people find it in</span></div><div class="line"><span class="number">270</span>	<span class="comment">// their profiles and wonder what it does, there is some chance that a web search</span></div><div class="line"><span class="number">271</span>	<span class="comment">// might answer the question.</span></div><div class="line"><span class="number">272</span>	<span class="comment">// There is a copy of this variable in src/go/build/build.go. Delete that one when this one goes away.</span></div><div class="line"><span class="number">273</span>	<span class="keyword">var</span> go15VendorExperiment = os.Getenv(<span class="string">"GO15VENDOREXPERIMENT"</span>) != <span class="string">"0"</span></div></pre></td></tr></table></figure></p>
+<h1 id="编译运行"><a href="#编译运行" class="headerlink" title="编译运行"></a>编译运行</h1><p>hello.go<br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div><div class="line"></div><div class="line"><span class="keyword">import</span> <span class="string">"fmt"</span></div><div class="line"></div><div class="line"><span class="function"><span class="keyword">func</span> <span class="title">main</span><span class="params">()</span></span> &#123;</div><div class="line">    fmt.Println(<span class="string">"Hello, World"</span>);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>Refer to “Go Playground” <a href="https://play.golang.org/p/F8Ev-6husG" target="_blank" rel="external">https://play.golang.org/p/F8Ev-6husG</a><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">go run hello.go</div></pre></td></tr></table></figure></p>
+<p><strong><em>go run</em></strong>是集编译，链接，运行于一体。运行完之后在当前目录下看不到任何中间文件和最终的可执行文件<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">go build hello.go</div><div class="line">./hello</div></pre></td></tr></table></figure></p>
+<p><strong><em>go build</em></strong>是编译，链接。执行完之后可以在当前目录下看见可执行程序hello. 使用<em>-work</em>参数可以生成临时文件。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">file /tmp/go-build373605995/<span class="built_in">command</span>-line-arguments.a</div><div class="line">/tmp/go-build373605995/<span class="built_in">command</span>-line-arguments.a: current ar archive</div></pre></td></tr></table></figure></p>
+<h1 id="工程管理"><a href="#工程管理" class="headerlink" title="工程管理"></a>工程管理</h1><h2 id="Go工程目录树结构"><a href="#Go工程目录树结构" class="headerlink" title="Go工程目录树结构"></a>Go工程目录树结构</h2><p>Go管理Project的方法比较特别，没有工程文件，而是<strong>使用目录结构和包名来推导工程结构和构建顺序</strong>，所以Go工程的目录结构和包名就很讲究，必须符合规定。<br>以一个加减乘除计算器为例。<br>目录结构如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div></pre></td><td class="code"><pre><div class="line">.</div><div class="line">└── littlecalc</div><div class="line">    ├── bin</div><div class="line">    │   └── calc</div><div class="line">    ├── pkg</div><div class="line">    └── src</div><div class="line">        ├── calc</div><div class="line">        │   └── calc.go</div><div class="line">        └── littlemath</div><div class="line">            ├── add.go</div><div class="line">            ├── div.go</div><div class="line">            ├── mul.go</div><div class="line">            └── sub.go</div></pre></td></tr></table></figure></p>
+<p>一般Go工程都会包含bin, pkg, src 3个目录。bin和pkg可以先不创建，go命令可以自动创建（比如 go install）。<br><code>src</code>目录顾名思义，是源码文件，Go源文件以package方式组织，新建一个package，就是在<code>src</code>下新建一个文件夹。</p>
+<p>如上面tree所示，<code>src</code>下有<code>calc</code>和<code>littlemath</code> 2个文件夹，即有2个package，一个littlemath package, littlemath下的4支文件中的package名称最好和目录名称保持一致，如果不一致就会比较麻烦，容易让人产生混淆，后面会说明package名称和目录名称不一致的情形。<br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> littlemath</div></pre></td></tr></table></figure></p>
+<p>另一个<code>calc</code>文件夹，是main package，<code>calc.go</code>中有表明是main package.<br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> main</div></pre></td></tr></table></figure></p>
+<h2 id="构建工程"><a href="#构建工程" class="headerlink" title="构建工程"></a>构建工程</h2><p>构建之前需要设置此工程的GOPATH. 每个工程都需要设置GOPATH环境变量，感觉还是有点小麻烦的。编辑<code>~/.profile</code>，将littlecalc路径添加到<code>GOPATH</code>中，然后<code>source ~/.profile</code>.</p>
+<h3 id="使用go-build来构建工程"><a href="#使用go-build来构建工程" class="headerlink" title="使用go build来构建工程"></a>使用<code>go build</code>来构建工程</h3><p>执行如下操作即可在<code>bin</code>目录下看到生成的可执行文件calc.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">cd</span> bin</div><div class="line">go build -x calc</div></pre></td></tr></table></figure></p>
+<p>使用<code>-x</code>参数查看build中间过程。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">WORK=/tmp/go-build782666460</div><div class="line">mkdir -p <span class="variable">$WORK</span>/littlemath/_obj/</div><div class="line">mkdir -p <span class="variable">$WORK</span>/</div><div class="line"><span class="built_in">cd</span> /home/joe/go/littlecalc/src/littlemath</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/compile -o <span class="variable">$WORK</span>/littlemath.a -trimpath <span class="variable">$WORK</span> -p littlemath -complete -buildid 3e05bdb1a540f52eb8c3fea594081c07afc21a07 -D _/home/joe/go/littlecalc/src/littlemath -I <span class="variable">$WORK</span> -pack ./add.go ./div.go ./mul.go ./sub.go</div><div class="line">mkdir -p <span class="variable">$WORK</span>/calc/_obj/</div><div class="line">mkdir -p <span class="variable">$WORK</span>/calc/_obj/exe/</div><div class="line"><span class="built_in">cd</span> /home/joe/go/littlecalc/src/calc</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/compile -o <span class="variable">$WORK</span>/calc.a -trimpath <span class="variable">$WORK</span> -p main -complete -buildid 87c3fe780b981105ecb696b77b4ab0998e93526b -D _/home/joe/go/littlecalc/src/calc -I <span class="variable">$WORK</span> -I /home/joe/go/littlecalc/pkg/linux_amd64 -pack ./calc.go</div><div class="line"><span class="built_in">cd</span> .</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/link -o <span class="variable">$WORK</span>/calc/_obj/exe/a.out -L <span class="variable">$WORK</span> -L /home/joe/go/littlecalc/pkg/linux_amd64 -extld=gcc -buildmode=exe -buildid=87c3fe780b981105ecb696b77b4ab0998e93526b <span class="variable">$WORK</span>/calc.a</div><div class="line">mv <span class="variable">$WORK</span>/calc/_obj/exe/a.out calc</div></pre></td></tr></table></figure></p>
+<p>先会创建临时目录才存放build中间结果，真正进行编译的是<code>compile</code>命令，链接的是<code>link</code>命令。最终build的可执行文件从临时目录中移到当前工作目录下。</p>
+<p>执行完<code>go build</code>的目录结构如下。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div></pre></td><td class="code"><pre><div class="line">.</div><div class="line">├── bin</div><div class="line">│   └── calc</div><div class="line">├── pkg</div><div class="line">└── src</div><div class="line">    ├── calc</div><div class="line">    │   └── calc.go</div><div class="line">    └── littlemath</div><div class="line">        ├── add.go</div><div class="line">        ├── div.go</div><div class="line">        ├── mul.go</div><div class="line">        └── sub.go</div></pre></td></tr></table></figure></p>
+<h3 id="使用go-install来构建工程"><a href="#使用go-install来构建工程" class="headerlink" title="使用go install来构建工程"></a>使用<code>go install</code>来构建工程</h3><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">go install -x calc</div></pre></td></tr></table></figure>
+<p>得到的结果如下。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div></pre></td><td class="code"><pre><div class="line">WORK=/tmp/go-build478301029</div><div class="line">mkdir -p <span class="variable">$WORK</span>/littlemath/_obj/</div><div class="line">mkdir -p <span class="variable">$WORK</span>/</div><div class="line"><span class="built_in">cd</span> /home/joe/go/littlecalc/src/littlemath</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/compile -o <span class="variable">$WORK</span>/littlemath.a -trimpath <span class="variable">$WORK</span> -p littlemath -complete -buildid 3e05bdb1a540f52eb8c3fea594081c07afc21a07 -D _/home/joe/go/littlecalc/src/littlemath -I <span class="variable">$WORK</span> -pack ./add.go ./div.go ./mul.go ./sub.go</div><div class="line">    mkdir -p /home/joe/go/littlecalc/pkg/linux_amd64/</div><div class="line">mv <span class="variable">$WORK</span>/littlemath.a /home/joe/go/littlecalc/pkg/linux_amd64/littlemath.a</div><div class="line">mkdir -p <span class="variable">$WORK</span>/calc/_obj/</div><div class="line">mkdir -p <span class="variable">$WORK</span>/calc/_obj/exe/</div><div class="line"><span class="built_in">cd</span> /home/joe/go/littlecalc/src/calc</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/compile -o <span class="variable">$WORK</span>/calc.a -trimpath <span class="variable">$WORK</span> -p main -complete -buildid 87c3fe780b981105ecb696b77b4ab0998e93526b -D _/home/joe/go/littlecalc/src/calc -I <span class="variable">$WORK</span> -I /home/joe/go/littlecalc/pkg/linux_amd64 -pack ./calc.go</div><div class="line"><span class="built_in">cd</span> .</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/link -o <span class="variable">$WORK</span>/calc/_obj/exe/a.out -L <span class="variable">$WORK</span> -L /home/joe/go/littlecalc/pkg/linux_amd64 -extld=gcc -buildmode=exe -buildid=87c3fe780b981105ecb696b77b4ab0998e93526b <span class="variable">$WORK</span>/calc.a</div><div class="line">mkdir -p /usr/<span class="built_in">local</span>/go/bin/</div><div class="line">cp <span class="variable">$WORK</span>/calc/_obj/exe/a.out /usr/<span class="built_in">local</span>/go/bin/calc</div><div class="line">go install calc: open /usr/<span class="built_in">local</span>/go/bin/calc: permission denied</div></pre></td></tr></table></figure></p>
+<p>发现最终生成的结果想要拷贝到<code>/usr/local/go/bin</code>下，因为当前时非root用户，没有权限执行此操作。奇怪的是，为什么不是往当前工作目录的<code>bin</code>下拷贝呢？原来是<code>$GOBIN</code>环境变量导致的。前面将<code>$GOBIN</code>设置成了<code>$GOROOT/bin</code>, 重新设置环境变量如下。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="built_in">export</span> GOROOT=/usr/<span class="built_in">local</span>/go</div><div class="line"><span class="built_in">export</span> GOBIN=</div><div class="line"><span class="built_in">export</span> GOPATH=<span class="variable">$HOME</span>/go/littlecalc</div><div class="line"><span class="built_in">export</span> PATH=<span class="variable">$PATH</span>:<span class="variable">$GOPATH</span>:<span class="variable">$GOROOT</span>/bin</div></pre></td></tr></table></figure></p>
+<p>然后再执行<code>go install calc</code>，可以看到目录树如下。在<code>bin</code>下多了一个叫<code>calc</code>的最终可执行文件；在pkg下多了一个package文件<code>littlemath.a</code>.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div></pre></td><td class="code"><pre><div class="line">.</div><div class="line">├── bin</div><div class="line">│   └── calc</div><div class="line">├── pkg</div><div class="line">│   └── linux_amd64</div><div class="line">│       └── littlemath.a</div><div class="line">└── src</div><div class="line">    ├── calc</div><div class="line">    │   └── calc.go</div><div class="line">    └── littlemath</div><div class="line">        ├── add.go</div><div class="line">        ├── div.go</div><div class="line">        ├── mul.go</div><div class="line">        └── sub.go</div></pre></td></tr></table></figure></p>
+<h3 id="go-build和go-install的区别"><a href="#go-build和go-install的区别" class="headerlink" title="go build和go install的区别"></a><code>go build</code>和<code>go install</code>的区别</h3><p>其实从上述<code>-x</code>参数得到的结果也可以粗略看出二者的区别。<br><code>go install</code>会创建<code>bin</code>和<code>pkg</code>，会将编译出所依赖的package放在pkg中，将最终的可执行文件放在bin中，这个bin的具体位置受到$GOBIN环境变量的影响。</p>
+<h3 id="package名称与目录名称不一致的情形"><a href="#package名称与目录名称不一致的情形" class="headerlink" title="package名称与目录名称不一致的情形"></a>package名称与目录名称不一致的情形</h3><p>对上面小工程的目录树结构稍作改变，将<code>littlemath</code>改名成<code>mymath</code>.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div></pre></td><td class="code"><pre><div class="line">.</div><div class="line">└── src</div><div class="line">    ├── calc</div><div class="line">    │   └── calc.go</div><div class="line">    └── mymath</div><div class="line">        ├── add.go</div><div class="line">        ├── div.go</div><div class="line">        ├── mul.go</div><div class="line">        └── sub.go</div></pre></td></tr></table></figure></p>
+<p><code>mymath</code>中的源文件中package名字仍然保留littlemath.<br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">package</span> littlemath</div></pre></td></tr></table></figure></p>
+<p><code>calc/calc.go</code>import的package也保留littlemath.<br><figure class="highlight go"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line"><span class="keyword">import</span> <span class="string">"littlemath"</span></div></pre></td></tr></table></figure></p>
+<p>然后<code>go install -x calc</code>会提示找不到littlemath package.<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">src/calc/calc.go:5:8: cannot find package <span class="string">"littlemath"</span> <span class="keyword">in</span> any of:</div><div class="line">	/usr/<span class="built_in">local</span>/go/src/littlemath (from <span class="variable">$GOROOT</span>)</div><div class="line">	/home/joe/go/littlecalc/src/littlemath (from <span class="variable">$GOPATH</span>)</div></pre></td></tr></table></figure></p>
+<p>但将<code>calc/calc.go</code>中import的package改成<code>mymath</code>，则可编译成功。<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">import &quot;mymath&quot;</div></pre></td></tr></table></figure></p>
+<p>go install -x calc<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line">WORK=/tmp/go-build875817729</div><div class="line">mkdir -p <span class="variable">$WORK</span>/mymath/_obj/</div><div class="line">mkdir -p <span class="variable">$WORK</span>/</div><div class="line"><span class="built_in">cd</span> /home/joe/go/littlecalc/src/mymath</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/compile -o <span class="variable">$WORK</span>/mymath.a -trimpath <span class="variable">$WORK</span> -p mymath -complete -buildid 3e05bdb1a540f52eb8c3fea594081c07afc21a07 -D _/home/joe/go/littlecalc/src/mymath -I <span class="variable">$WORK</span> -pack ./add.go ./div.go ./mul.go ./sub.go</div><div class="line">mkdir -p /home/joe/go/littlecalc/pkg/linux_amd64/</div><div class="line">mv <span class="variable">$WORK</span>/mymath.a /home/joe/go/littlecalc/pkg/linux_amd64/mymath.a</div><div class="line">mkdir -p <span class="variable">$WORK</span>/calc/_obj/</div><div class="line">mkdir -p <span class="variable">$WORK</span>/calc/_obj/exe/</div><div class="line"><span class="built_in">cd</span> /home/joe/go/littlecalc/src/calc</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/compile -o <span class="variable">$WORK</span>/calc.a -trimpath <span class="variable">$WORK</span> -p main -complete -buildid b26a0e0d54c06e74fff3641e2e7c712ad9527d73 -D _/home/joe/go/littlecalc/src/calc -I <span class="variable">$WORK</span> -I /home/joe/go/littlecalc/pkg/linux_amd64 -pack ./calc.go</div><div class="line"><span class="built_in">cd</span> .</div><div class="line">/usr/<span class="built_in">local</span>/go/pkg/tool/linux_amd64/link -o <span class="variable">$WORK</span>/calc/_obj/exe/a.out -L <span class="variable">$WORK</span> -L /home/joe/go/littlecalc/pkg/linux_amd64 -extld=gcc -buildmode=exe -buildid=b26a0e0d54c06e74fff3641e2e7c712ad9527d73 <span class="variable">$WORK</span>/calc.a</div><div class="line">mkdir -p /home/joe/go/littlecalc/bin/</div><div class="line">mv <span class="variable">$WORK</span>/calc/_obj/exe/a.out /home/joe/go/littlecalc/bin/calc</div></pre></td></tr></table></figure></p>
+<p>以上可以发现，编译产生的静态包(package)文件是以目录名来命名的。import时应该是目录名，而在引用包时则需要包名。<br>虽然将<code>littlemath</code>改成了<code>mymath</code>，<code>calc/calc.go</code>中的<code>import &quot;littlemath&quot;</code>改成了<code>import &quot;mymath&quot;</code>，<br>但是<code>mymath</code>下的源文件中仍然定义的是<code>package littlemath</code>，<br><code>calc/calc.go</code>中引用包中的函数仍然是类似于<code>little.Add()</code>这样的。</p>
+<h2 id="摆脱每新建一个工程就需要重新设置GOPATH的方法"><a href="#摆脱每新建一个工程就需要重新设置GOPATH的方法" class="headerlink" title="摆脱每新建一个工程就需要重新设置GOPATH的方法"></a>摆脱每新建一个工程就需要重新设置GOPATH的方法</h2><p>来自于<a href="http://blog.studygolang.com/2012/12/go%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84/" target="_blank" rel="external">Go项目的目录结构</a>。<br>与<code>src</code>平行路径新建一支<code>build.sh</code>文件，内容如下。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#!/usr/bin/env bash</span></div><div class="line"></div><div class="line">pkg=<span class="variable">$1</span></div><div class="line"></div><div class="line">CURDIR=`<span class="built_in">pwd</span>`</div><div class="line">OLDGOPATH=<span class="string">"<span class="variable">$GOPATH</span>"</span></div><div class="line"><span class="built_in">export</span> GOPATH=<span class="string">"<span class="variable">$CURDIR</span>"</span></div><div class="line"></div><div class="line">gofmt -w src</div><div class="line"></div><div class="line">go install -x <span class="variable">$1</span></div><div class="line"></div><div class="line"><span class="built_in">export</span> GOPATH=<span class="string">"<span class="variable">$OLDGOPATH</span>"</span></div><div class="line"></div><div class="line"><span class="built_in">echo</span> <span class="string">'finished'</span></div></pre></td></tr></table></figure></p>
+<p>使用方法：<code>sh build.sh [packages]</code>，如<code>sh build.sh calc</code>.</p>
+<h1 id="Appendix"><a href="#Appendix" class="headerlink" title="Appendix"></a>Appendix</h1><p>calc源码:<br><a href="https://github.com/magicse7en/go-practice/commit/668cd75c498bfd1c8542eeefb8547c53dd2e7cde" target="_blank" rel="external">https://github.com/magicse7en/go-practice/commit/668cd75c498bfd1c8542eeefb8547c53dd2e7cde</a><br>修改包名与目录名不一致的源码:<br><a href="https://github.com/magicse7en/go-practice/commit/fce999305dd0c025493a4e3282379291c8d8f69e" target="_blank" rel="external">https://github.com/magicse7en/go-practice/commit/fce999305dd0c025493a4e3282379291c8d8f69e</a><br><a href="https://github.com/magicse7en/go-practice/commit/0b0fdd9f75431d6afb64d86d1398dbd80e86a70b" target="_blank" rel="external">build.sh</a></p>
+<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><p><a href="http://blog.studygolang.com/2012/12/go%E9%A1%B9%E7%9B%AE%E7%9A%84%E7%9B%AE%E5%BD%95%E7%BB%93%E6%9E%84/" target="_blank" rel="external">Go项目的目录结构</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;Install-Golang&quot;&gt;&lt;a href=&quot;#Install-Golang&quot; class=&quot;headerlink&quot; title=&quot;Install Golang&quot;&gt;&lt;/a&gt;Install Golang&lt;/h1&gt;&lt;p&gt;Golang安装参考&lt;a href=&quot;https://golang.org/doc/install&quot;&gt;https://golang.org/doc/install&lt;/a&gt;&lt;/p&gt;
+&lt;h1 id=&quot;相关环境变量&quot;&gt;&lt;a href=&quot;#相关环境变量&quot; class=&quot;headerlink&quot; title=&quot;相关环境变量&quot;&gt;&lt;/a&gt;相关环境变量&lt;/h1&gt;&lt;p&gt;环境变量设置，将如下设置写到~/.profile文件中：&lt;br&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;2&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;3&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;4&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; GOROOT=/usr/&lt;span class=&quot;built_in&quot;&gt;local&lt;/span&gt;/go&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; GOBIN=&lt;span class=&quot;variable&quot;&gt;$GOROOT&lt;/span&gt;/bin&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; GOPATH=&lt;span class=&quot;variable&quot;&gt;$HOME&lt;/span&gt;/go&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;built_in&quot;&gt;export&lt;/span&gt; PATH=&lt;span class=&quot;variable&quot;&gt;$PATH&lt;/span&gt;:&lt;span class=&quot;variable&quot;&gt;$GOPATH&lt;/span&gt;:&lt;span class=&quot;variable&quot;&gt;$GOBIN&lt;/span&gt;&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h2 id=&quot;GOROOT&quot;&gt;&lt;a href=&quot;#GOROOT&quot; class=&quot;headerlink&quot; title=&quot;GOROOT&quot;&gt;&lt;/a&gt;GOROOT&lt;/h2&gt;&lt;p&gt;GOROOT是go的安装路径&lt;br&gt;package runtime中：&lt;br&gt;&lt;a href=&quot;https://golang.org/src/runtime/extern.go?h=GOROOT#L213&quot;&gt;/src/runtime/extern.go:213&lt;/a&gt;&lt;br&gt;&lt;figure class=&quot;highlight go&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;2&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;3&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;4&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;5&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;6&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;7&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;8&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;9&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;10&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;210&lt;/span&gt;	&lt;span class=&quot;comment&quot;&gt;// GOROOT returns the root of the Go tree.&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;211&lt;/span&gt;	&lt;span class=&quot;comment&quot;&gt;// It uses the GOROOT environment variable, if set,&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;212&lt;/span&gt;	&lt;span class=&quot;comment&quot;&gt;// or else the root used during the Go build.&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;213&lt;/span&gt;	&lt;span class=&quot;function&quot;&gt;&lt;span class=&quot;keyword&quot;&gt;func&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;GOROOT&lt;/span&gt;&lt;span class=&quot;params&quot;&gt;()&lt;/span&gt; &lt;span class=&quot;title&quot;&gt;string&lt;/span&gt;&lt;/span&gt; &amp;#123;&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;214&lt;/span&gt;		s := gogetenv(&lt;span class=&quot;string&quot;&gt;&quot;GOROOT&quot;&lt;/span&gt;)&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;215&lt;/span&gt;		&lt;span class=&quot;keyword&quot;&gt;if&lt;/span&gt; s != &lt;span class=&quot;string&quot;&gt;&quot;&quot;&lt;/span&gt; &amp;#123;&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;216&lt;/span&gt;			&lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; s&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;217&lt;/span&gt;		&amp;#125;&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;218&lt;/span&gt;		&lt;span class=&quot;keyword&quot;&gt;return&lt;/span&gt; sys.DefaultGoroot&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;&lt;span class=&quot;number&quot;&gt;219&lt;/span&gt;	&amp;#125;&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Golang" scheme="http://magicse7en.github.io/categories/Golang/"/>
+    
+    
+      <category term="Golang" scheme="http://magicse7en.github.io/tags/Golang/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>使用Travis CI自动构建hexo博客</title>
+    <link href="http://magicse7en.github.io/2016/03/27/travis-ci-auto-deploy-hexo-github/"/>
+    <id>http://magicse7en.github.io/2016/03/27/travis-ci-auto-deploy-hexo-github/</id>
+    <published>2016-03-27T23:40:28.000Z</published>
+    <updated>2016-03-28T00:00:00.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>hexo虽然可以方便地部署github静态博客，但是仅仅是把最终生成的html保存在repository中，像原始的Markdown文件，hexo配置文件，主题配置文件，修改文件都仅仅是保存在本地。这样不利于保存，也无法查看每篇博客的修改历史。更重要的是无法做到跨平台，也不易于多人写作。</p>
+<p>想法是每次写博客，只需要push md文件及博客所需的资源文件即可。Travis CI持续集成tool可以满足此需求。</p>
+<a id="more"></a>
+<h1 id="产生Personal-access-tokens"><a href="#产生Personal-access-tokens" class="headerlink" title="产生Personal access tokens"></a>产生Personal access tokens</h1><p>登录github, settings -&gt; Personal access tokens -&gt; Generate new token<br>填写token description，比如叫hexo deploy.<br>勾选上授予的权限，比如我勾选的是repo和gist，然后create.<br>将产生的token串复制保留下来，后面会使用到,如果丢失，只能重新产生。<br><img src="/img/personal_access_token.png" alt="personal_access_token.png"></p>
+<h1 id="Travis-CI基本配置"><a href="#Travis-CI基本配置" class="headerlink" title="Travis CI基本配置"></a>Travis CI基本配置</h1><ol>
+<li>打开<a href="https://travis-ci.org" target="_blank" rel="external">https://travis-ci.org</a>, 以github账号登录，然后选择需要构建的repository</li>
+<li><p>设置Environment Variables: 取名为“DEPLOY_REPO”，将上一步中复制的token粘贴到此处，关掉“Display value in build log”选项。添加完之后如下图：<br><img src="/img/travis_ci_setting.png" alt="travis_ci_setting.png"></p>
+</li>
+<li><p>check token是否有效</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">apt-get install ruby <span class="comment"># gem命令需要安装ruby</span></div><div class="line">gem install travis</div><div class="line">travis login --github-token <span class="string">'token'</span> <span class="comment"># token即是上面复制的那个token串</span></div><div class="line">travis whoami <span class="comment"># 提示用户信息</span></div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h1 id="配置-travis-yml"><a href="#配置-travis-yml" class="headerlink" title="配置.travis.yml"></a>配置.travis.yml</h1><ol>
+<li><p>在hexo博客的repository上新建一个branch “raw”用于保存md文件及资源文件，主题文件等。</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">git branch raw</div><div class="line">git checkout raw</div><div class="line">git add --all .</div><div class="line">git push origin raw</div></pre></td></tr></table></figure>
+</li>
+<li><p>新建.travis.yml文件，然后push到raw branch<br>refer to: <a href="https://github.com/magicse7en/magicse7en.github.io/blob/raw/.travis.yml" target="_blank" rel="external">https://github.com/magicse7en/magicse7en.github.io/blob/raw/.travis.yml</a><br>注意branch要设置成only raw：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">branches:</div><div class="line">  only:</div><div class="line">    - raw</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<h1 id="Test"><a href="#Test" class="headerlink" title="Test"></a>Test</h1><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">hexo new <span class="string">"xxx"</span></div><div class="line">git add --all .</div><div class="line">git push origin raw</div></pre></td></tr></table></figure>
+<p>打开travis-ci.org， 能够发现正在构建，可以check build log, 看看是否build OK.<br><img src="/img/travis_ci_build_status.png" alt="travis_ci_build_status.png"><br>如果build OK, 可以打开博客首页check新post的博客有无成功。</p>
+<h1 id="遇到的坑"><a href="#遇到的坑" class="headerlink" title="遇到的坑"></a>遇到的坑</h1><h2 id="坑1：-travis-CI构建一直提示github账户授权失败"><a href="#坑1：-travis-CI构建一直提示github账户授权失败" class="headerlink" title="坑1： travis CI构建一直提示github账户授权失败"></a>坑1： travis CI构建一直提示github账户授权失败</h2><p>psersonal token问题，重新产生，并使用travis whoami判断token有效之后再配置travis CI environment variable</p>
+<h2 id="坑2：travis-CI构建一直提示hexo-renderer-sass错误"><a href="#坑2：travis-CI构建一直提示hexo-renderer-sass错误" class="headerlink" title="坑2：travis CI构建一直提示hexo-renderer-sass错误"></a>坑2：travis CI构建一直提示hexo-renderer-sass错误</h2><p>在本地deploy并没有发生此问题，在travis vm中出现此问题，解决方式是在.travis.yml中增加<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">npm install hexo-renderer-sass --save</div></pre></td></tr></table></figure></p>
+<h2 id="坑3：-travis-CI自动构建部署之后，博客页面空白，什么也没有"><a href="#坑3：-travis-CI自动构建部署之后，博客页面空白，什么也没有" class="headerlink" title="坑3： travis CI自动构建部署之后，博客页面空白，什么也没有"></a>坑3： travis CI自动构建部署之后，博客页面空白，什么也没有</h2><p>将主题换回默认的landscape则可以正常显示内容。则锁定是next theme配置问题，check发现themes/next 中的内容被ignore了，并没有push到raw branch.<br>解决方法有二：</p>
+<ul>
+<li><p>使用.gitmodules，该方法会直接将next theme repository import进来，这样的好处是可以使用最新的next theme，坏处是没法客制化自己的主题配置文件</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">[submodule &quot;next&quot;]</div><div class="line">   path = themes/next</div><div class="line">   url = https://github.com/iissnan/hexo-theme-next</div></pre></td></tr></table></figure>
+</li>
+<li><p>删除themes/next的.git和.gitignore，然后就可以讲themes/next的内容push到repository中了。</p>
+</li>
+</ul>
+<h1 id="Others"><a href="#Others" class="headerlink" title="Others"></a>Others</h1><ol>
+<li><p>在.travis.yml中将node_modules添加到cache中，可以加快构建速度</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">cache:</div><div class="line">  directories:</div><div class="line">    - node_modules</div></pre></td></tr></table></figure>
+</li>
+<li><p>如果想在github的README.md显示构建成功与否的标示，可以修改README.md：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">[build-info](https://travis-ci.org/userName/repoName.svg)</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p><img src="/img/travis_ci_build_info_show.png" alt="travis_ci_build_info_show.png"></p>
+<h1 id="Reference"><a href="#Reference" class="headerlink" title="Reference"></a>Reference</h1><p>借用一张图说明Travis CI自动构建hexo博客的流程：<br><img src="/img/travis-ci-work-flow.png" alt="travis-ci-work-flow.png"></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;hexo虽然可以方便地部署github静态博客，但是仅仅是把最终生成的html保存在repository中，像原始的Markdown文件，hexo配置文件，主题配置文件，修改文件都仅仅是保存在本地。这样不利于保存，也无法查看每篇博客的修改历史。更重要的是无法做到跨平台，也不易于多人写作。&lt;/p&gt;
+&lt;p&gt;想法是每次写博客，只需要push md文件及博客所需的资源文件即可。Travis CI持续集成tool可以满足此需求。&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Blog" scheme="http://magicse7en.github.io/categories/Blog/"/>
+    
+    
+      <category term="hexo" scheme="http://magicse7en.github.io/tags/hexo/"/>
+    
+      <category term="travis ci" scheme="http://magicse7en.github.io/tags/travis-ci/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>lzo decompress kernel zImage crash analysis</title>
+    <link href="http://magicse7en.github.io/2016/03/08/lzo-decompress-kernel-zImage-crash-analysis/"/>
+    <id>http://magicse7en.github.io/2016/03/08/lzo-decompress-kernel-zImage-crash-analysis/</id>
+    <published>2016-03-08T23:05:08.000Z</published>
+    <updated>2017-03-07T15:42:56.268Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Background"><a href="#Background" class="headerlink" title="Background"></a>Background</h1><p>CPU: ARMv7<br>Kernel: 3.10.26</p>
+<p>最近把压缩kernel的算法由gzip改成lzo，在boot自解压kernel阶段CPU会abort. </p>
+<a id="more"></a>
+<h1 id="Debug"><a href="#Debug" class="headerlink" title="Debug"></a>Debug</h1><p>先check压缩kernel的算法是否已经是lzo了，check arch/arm/boot/compressed下已经有piggy.lzo文件了。check系统从flash中load的zImage也是正确的，自解压kernel之前位于DRAM中的zImage的data也是正确的。出现crash之后，再去check DRAM中zImage data，发现并没有发现变化，说明zImage src data是正确的，并没有被盖写，只能是在自解压过程中出现问题了。</p>
+<p>debug发现每次都是解压固定的某块数据时出错，C code是位于<strong>include/linux/unaligned/le_struct.h</strong><br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">inline</span> u16 <span class="title">get_unaligned_le16</span><span class="params">(<span class="keyword">const</span> <span class="keyword">void</span> *p)</span></span></div><div class="line">&#123;</div><div class="line">    <span class="keyword">return</span> __get_unaligned_cpu16((<span class="keyword">const</span> u8 *)p);</div><div class="line">&#125;</div></pre></td></tr></table></figure></p>
+<p>对应的具体出错的汇编指令是<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ldrh r12, [r8], #02</div></pre></td></tr></table></figure></p>
+<p>出错时r8的值是奇数，比如是0x04000003，于是怀疑是对齐问题。check了下kernel config，也没有发现漏掉了跟对齐相关的config. 查看DFAR和DFSR register，发现Fault Status bits是0x1, 对照ARM手册，就是alignment fault.</p>
+<blockquote>
+<p>FS[3:0]     Fault Status bits. This field indicates the type of exception generated. Any encoding not listed is reserved:<br>      <strong>0b00001 Alignment fault.</strong><br>      0b00010 Debug event.<br>      0b00011 Access flag fault, section.<br>      0b00100 Instruction cache maintenance fault.<br>      0b00101 Translation fault, section.<br>      0b00110 Access flag fault, page.<br>      0b00111 Translation fault, page.<br>      0b01000 Synchronous external abort, non-translation.<br>      0b01001 Domain fault, section.<br>      0b01011 Domain fault, page.<br>      0b01100 Synchronous external abort on translation table walk, first level.<br>      0b01101 Permission fault, section.<br>      0b01110 Synchronous external abort on translation table walk, second level.<br>      0b01111 Permission fault, second level.<br>      0b10000 TLB conflict abort.<br>      0b10101 LDREX or STREX abort.<br>      0b10110 Asynchronous external abort.<br>      0b11000 Asynchronous parity error on memory access.<br>      0b11001 Synchronous parity error on memory access.<br>      0b11100 Synchronous parity error on translation table walk, first level.<br>      0b11110 Synchronous parity error on translation table walk, second level.</p>
+</blockquote>
+<p>进一步debug, 发现在解压过程中上述指令中的r8值经常会出现奇数，也没有发生crash，为什么唯独到了解压某个固定的block时就会出问题呢？于是乎怀疑出问题时的这段memory跟其他memory属性不一样，check MMU table，果不其然，crash时指令访问的memory的属性是outer, Device的，而其他段mapping的memory属性是可读可写的。</p>
+<p>接下来就来check 自解压kernel时MMU table是何时打开的？何时mapping的？<br><strong>arch/arm/boot/compressed/head.S</strong><br><figure class="highlight c"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div><div class="line">8</div><div class="line">9</div><div class="line">10</div><div class="line">11</div><div class="line">12</div><div class="line">13</div><div class="line">14</div><div class="line">15</div><div class="line">16</div><div class="line">17</div><div class="line">18</div><div class="line">19</div><div class="line">20</div><div class="line">21</div><div class="line">22</div><div class="line">23</div></pre></td><td class="code"><pre><div class="line">__setup_mmu:    sub     r3, r4, #<span class="number">16384</span>          @ Page directory size</div><div class="line">                 bic     r3, r3, #<span class="number">0xff</span>           @ Align the pointer</div><div class="line">                 bic     r3, r3, #<span class="number">0x3f00</span></div><div class="line"> <span class="comment">/*</span></div><div class="line">  * Initialise the page tables, turning on the cacheable and bufferable</div><div class="line">  * bits for the RAM area only.</div><div class="line">  */</div><div class="line">                 mov     r0, r3</div><div class="line">                 mov     r9, r0, lsr #<span class="number">18</span></div><div class="line">                 mov     r9, r9, lsl #<span class="number">18</span>         @ start of RAM</div><div class="line">                 add     r10, r9, #<span class="number">0x10000000</span>    @ a reasonable RAM size</div><div class="line">                 mov     r1, #<span class="number">0x12</span>               @ XN|U + section mapping</div><div class="line">                 orr     r1, r1, #<span class="number">3</span> &lt;&lt; <span class="number">10</span>        @ AP=<span class="number">11</span></div><div class="line">                 add     r2, r3, #<span class="number">16384</span></div><div class="line"> <span class="number">1</span>:              cmp     r1, r9                  @ <span class="keyword">if</span> virt &gt; start of RAM</div><div class="line">                 cmphs   r10, r1                 @   &amp;&amp; end of RAM &gt; virt</div><div class="line">                 bic     r1, r1, #<span class="number">0x1c</span>           @ clear XN|U + C + B</div><div class="line">                 orrlo   r1, r1, #<span class="number">0x10</span>           @ Set XN|U <span class="keyword">for</span> non-RAM</div><div class="line">                 orrhs   r1, r1, r6              @ <span class="built_in">set</span> RAM section settings</div><div class="line">                 str     r1, [r0], #<span class="number">4</span>            @ <span class="number">1</span>:<span class="number">1</span> mapping</div><div class="line">                 add     r1, r1, #<span class="number">1048576</span></div><div class="line">                 teq     r0, r2</div><div class="line">                 bne     <span class="number">1b</span></div></pre></td></tr></table></figure></p>
+<p>这段汇编code设定了mapping的属性。</p>
+<h1 id="RootCause"><a href="#RootCause" class="headerlink" title="RootCause"></a>RootCause</h1><p>uImage中设定zImage的execute address不合适导致的上述code设定的MMU属性不对。</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;h1 id=&quot;Background&quot;&gt;&lt;a href=&quot;#Background&quot; class=&quot;headerlink&quot; title=&quot;Background&quot;&gt;&lt;/a&gt;Background&lt;/h1&gt;&lt;p&gt;CPU: ARMv7&lt;br&gt;Kernel: 3.10.26&lt;/p&gt;
+&lt;p&gt;最近把压缩kernel的算法由gzip改成lzo，在boot自解压kernel阶段CPU会abort. &lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Linux" scheme="http://magicse7en.github.io/categories/Linux/"/>
+    
+    
+      <category term="lzo" scheme="http://magicse7en.github.io/tags/lzo/"/>
+    
+      <category term="zImage" scheme="http://magicse7en.github.io/tags/zImage/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Ubuntu + Github + Hexo搭建blog小记</title>
+    <link href="http://magicse7en.github.io/2016/03/06/ubuntu-github-hexo-blog-setup/"/>
+    <id>http://magicse7en.github.io/2016/03/06/ubuntu-github-hexo-blog-setup/</id>
+    <published>2016-03-06T00:00:00.000Z</published>
+    <updated>2016-03-23T00:00:00.000Z</updated>
+    
+    <content type="html"><![CDATA[<p>当Jekyll教程在收藏夹中沉睡很久之后，发现时兴已经是Hexo了。<br>于是折腾了一把Hexo+Github搭建博客，总算落实夙愿了。</p>
+<h1 id="Install-Git-amp-Github配置"><a href="#Install-Git-amp-Github配置" class="headerlink" title="Install Git &amp; Github配置"></a>Install Git &amp; Github配置</h1><h2 id="Install-git"><a href="#Install-git" class="headerlink" title="Install git"></a>Install git</h2><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">apt-get install git</div></pre></td></tr></table></figure>
+<p>然后配置username和email<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">git config --global user.name <span class="string">"xxx"</span></div><div class="line">git config --global user.email <span class="string">"xxx@xxx.com"</span></div></pre></td></tr></table></figure></p>
+<h2 id="Generate-ssh-key"><a href="#Generate-ssh-key" class="headerlink" title="Generate ssh-key"></a>Generate ssh-key</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ssh-keygen -t rsa -C &quot;xxx@xxx.com&quot;</div></pre></td></tr></table></figure>
+<p>如果没有Github账户的话，则注册一个，将.ssh/id_rsa.pub中的内容复制到Github的Settings-&gt; SSH Keys-&gt; New SSH Key<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">ssh -T git@github.com</div></pre></td></tr></table></figure></p>
+<p>会提示</p>
+<blockquote>
+<p>The authenticity of host ‘github.com (207.97.227.239)’ can’t be established.RSA key fingerprint is 16:27:ac:a5:76:28:2d:36:63:1b:56:4d:eb:df:a6:48.Are you sure you want to continue connecting (yes/no)?</p>
+</blockquote>
+<p>输入yes就好，然后会提示：</p>
+<blockquote>
+<p>Hi xxx! You’ve successfully authenticated, but GitHub does not provide shell access.</p>
+</blockquote>
+<h2 id="Create-Repository"><a href="#Create-Repository" class="headerlink" title="Create Repository"></a>Create Repository</h2><p>名字必须是GithubId.github.io</p>
+<a id="more"></a>
+<h1 id="Install-NodeJs"><a href="#Install-NodeJs" class="headerlink" title="Install NodeJs"></a>Install NodeJs</h1><p>Nodejs官网下载tarball-&gt;解压-&gt;创建软链接<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">ln <span class="_">-s</span> /home/xxx/Software/node-v4.3.2-linux-x64/bin/node /usr/<span class="built_in">local</span>/bin/node</div><div class="line">ln <span class="_">-s</span> /home/xxx/Software/node-v4.3.2-linux-x64/bin/npm /usr/<span class="built_in">local</span>/bin/npm</div></pre></td></tr></table></figure></p>
+<h1 id="Install-Hexo"><a href="#Install-Hexo" class="headerlink" title="Install Hexo"></a>Install Hexo</h1><p>docs: <a href="https://hexo.io/docs/" target="_blank" rel="external">https://hexo.io/docs/</a><br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">npm install -g hexo</div><div class="line">mkdir hexo</div><div class="line">ln <span class="_">-s</span> /home/xxx/Software/node-v4.3.2-linux-x64/bin/hexo /usr/<span class="built_in">local</span>/bin/hexo</div><div class="line">hexo init</div><div class="line">hexo generate</div><div class="line">hexo server <span class="comment">#启动server, 在浏览器中输入 http://localhost:4000 可以看到页面</span></div></pre></td></tr></table></figure></p>
+<p>配置文件<br>将<em>_config.yml</em>中type改成如下：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line">deploy:</div><div class="line">  <span class="built_in">type</span>: git</div><div class="line">  repository: https://github.com/githubid/githubid.github.io.git</div><div class="line">  branch: master</div></pre></td></tr></table></figure></p>
+<p>然后部署，即可浏览<a href="https://githubid.github.io" target="_blank" rel="external">https://githubid.github.io</a> ，博客页面出现了。<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">npm install hexo-deployer-git --save</div><div class="line">hexo deploy</div></pre></td></tr></table></figure></p>
+<h1 id="Generate-amp-Deploy"><a href="#Generate-amp-Deploy" class="headerlink" title="Generate &amp; Deploy"></a>Generate &amp; Deploy</h1><p>新建博客：<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hexo new hello-hexo</div></pre></td></tr></table></figure></p>
+<p>然后可以使用Markdown语法编辑source/_posts/hell-hexo.md<br>编辑完成之后，使用hexo generate产生，然后可以启动server: hexo server，本地浏览页面效果。<br>满意之后可以直接部署到github:<br>hexo deploy</p>
+<p>每次deploy前最好clean一下<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hexo clean</div></pre></td></tr></table></figure></p>
+<p>生成和部署可以直接使用<br><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hexo g <span class="_">-d</span></div></pre></td></tr></table></figure></p>
+<h1 id="Themes-configuration"><a href="#Themes-configuration" class="headerlink" title="Themes configuration"></a>Themes configuration</h1><p>有选择困难症太纠结，最后还是选择了Next主题，配置手册: [<a href="http://theme-next.iissnan.com" target="_blank" rel="external">http://theme-next.iissnan.com</a>]</p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;当Jekyll教程在收藏夹中沉睡很久之后，发现时兴已经是Hexo了。&lt;br&gt;于是折腾了一把Hexo+Github搭建博客，总算落实夙愿了。&lt;/p&gt;
+&lt;h1 id=&quot;Install-Git-amp-Github配置&quot;&gt;&lt;a href=&quot;#Install-Git-amp-Github配置&quot; class=&quot;headerlink&quot; title=&quot;Install Git &amp;amp; Github配置&quot;&gt;&lt;/a&gt;Install Git &amp;amp; Github配置&lt;/h1&gt;&lt;h2 id=&quot;Install-git&quot;&gt;&lt;a href=&quot;#Install-git&quot; class=&quot;headerlink&quot; title=&quot;Install git&quot;&gt;&lt;/a&gt;Install git&lt;/h2&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;apt-get install git&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;然后配置username和email&lt;br&gt;&lt;figure class=&quot;highlight bash&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;2&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;git config --global user.name &lt;span class=&quot;string&quot;&gt;&quot;xxx&quot;&lt;/span&gt;&lt;/div&gt;&lt;div class=&quot;line&quot;&gt;git config --global user.email &lt;span class=&quot;string&quot;&gt;&quot;xxx@xxx.com&quot;&lt;/span&gt;&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;h2 id=&quot;Generate-ssh-key&quot;&gt;&lt;a href=&quot;#Generate-ssh-key&quot; class=&quot;headerlink&quot; title=&quot;Generate ssh-key&quot;&gt;&lt;/a&gt;Generate ssh-key&lt;/h2&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;ssh-keygen -t rsa -C &amp;quot;xxx@xxx.com&amp;quot;&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;
+&lt;p&gt;如果没有Github账户的话，则注册一个，将.ssh/id_rsa.pub中的内容复制到Github的Settings-&amp;gt; SSH Keys-&amp;gt; New SSH Key&lt;br&gt;&lt;figure class=&quot;highlight plain&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;1&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;td class=&quot;code&quot;&gt;&lt;pre&gt;&lt;div class=&quot;line&quot;&gt;ssh -T git@github.com&lt;/div&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/p&gt;
+&lt;p&gt;会提示&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;The authenticity of host ‘github.com (207.97.227.239)’ can’t be established.RSA key fingerprint is 16:27:ac:a5:76:28:2d:36:63:1b:56:4d:eb:df:a6:48.Are you sure you want to continue connecting (yes/no)?&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;输入yes就好，然后会提示：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Hi xxx! You’ve successfully authenticated, but GitHub does not provide shell access.&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h2 id=&quot;Create-Repository&quot;&gt;&lt;a href=&quot;#Create-Repository&quot; class=&quot;headerlink&quot; title=&quot;Create Repository&quot;&gt;&lt;/a&gt;Create Repository&lt;/h2&gt;&lt;p&gt;名字必须是GithubId.github.io&lt;/p&gt;
+    
+    </summary>
+    
+      <category term="Blog" scheme="http://magicse7en.github.io/categories/Blog/"/>
+    
+    
+      <category term="hexo" scheme="http://magicse7en.github.io/tags/hexo/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Hello World</title>
+    <link href="http://magicse7en.github.io/2016/03/04/hello-world/"/>
+    <id>http://magicse7en.github.io/2016/03/04/hello-world/</id>
+    <published>2016-03-04T00:00:00.000Z</published>
+    <updated>2017-03-07T15:42:56.268Z</updated>
+    
+    <content type="html"><![CDATA[<p>Welcome to <a href="https://hexo.io/" target="_blank" rel="external">Hexo</a>! This is your very first post. Check <a href="https://hexo.io/docs/" target="_blank" rel="external">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a href="https://hexo.io/docs/troubleshooting.html" target="_blank" rel="external">troubleshooting</a> or you can ask me on <a href="https://github.com/hexojs/hexo/issues" target="_blank" rel="external">GitHub</a>.</p>
+<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo new <span class="string">"My New Post"</span></div></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/writing.html" target="_blank" rel="external">Writing</a></p>
+<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo server</div></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/server.html" target="_blank" rel="external">Server</a></p>
+<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo generate</div></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/generating.html" target="_blank" rel="external">Generating</a></p>
+<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">$ hexo deploy</div></pre></td></tr></table></figure>
+<p>More info: <a href="https://hexo.io/docs/deployment.html" target="_blank" rel="external">Deployment</a></p>
+]]></content>
+    
+    <summary type="html">
+    
+      &lt;p&gt;Welcome to &lt;a href=&quot;https://hexo.io/&quot; target=&quot;_blank&quot; rel=&quot;external&quot;&gt;Hexo&lt;/a&gt;! This is your very first post. Check &lt;a href=&quot;https://hexo.
+    
+    </summary>
+    
+    
+  </entry>
+  
+</feed>
